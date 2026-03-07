@@ -7,6 +7,3 @@
 .DS_Store
 *.local
 
-# Ignored per user request to not push these directories
-/src/app/pages/
-/src/app/components/ui/
