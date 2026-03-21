@@ -14,7 +14,7 @@ interface AppContextType {
   orders: Order[];
   createOrder: (paymentMethod: 'cash' | 'card' | 'online', specialNotes?: string) => void;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
-  
+
   // Menu Items
   menuItems: MenuItem[];
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => void;
@@ -33,7 +33,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error('Failed to parse cart from localStorage', e);
+        localStorage.removeItem('cart');
+      }
     }
   }, []);
 

@@ -55,14 +55,15 @@ class Kernel extends HttpKernel
      */
     protected $routeMiddleware = [
         'check.admin' => \App\Http\Middleware\CheckAdminCredentials::class,
-        'auth' => \App\Http\Middleware\Authenticate::class,
-        'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
+        'role'        => \App\Http\Middleware\CheckRole::class,
+        'auth'        => \App\Http\Middleware\Authenticate::class,
+        'auth.basic'  => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
-        'can' => \Illuminate\Auth\Middleware\Authorize::class,
-        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+        'can'           => \Illuminate\Auth\Middleware\Authorize::class,
+        'guest'         => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'password.confirm' => \Illuminate\Auth\Middleware\RequirePassword::class,
-        'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
-        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
-        'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+        'signed'        => \Illuminate\Routing\Middleware\ValidateSignature::class,
+        'throttle'      => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'verified'      => \App\Http\Middleware\EnsureEmailIsVerified::class,
     ];
 }

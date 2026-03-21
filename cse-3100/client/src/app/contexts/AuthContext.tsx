@@ -18,14 +18,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Check for stored user on mount
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error('Failed to parse currentUser from localStorage', e);
+        localStorage.removeItem('currentUser');
+      }
     }
   }, []);
 
   const login = (email: string, password: string, role: string): boolean => {
     // Simple mock authentication
     const foundUser = mockUsers.find(u => u.email === email && u.role === role);
-    
+
     if (foundUser) {
       setUser(foundUser);
       localStorage.setItem('currentUser', JSON.stringify(foundUser));
