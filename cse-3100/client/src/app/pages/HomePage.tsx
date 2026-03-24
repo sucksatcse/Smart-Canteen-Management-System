@@ -255,7 +255,7 @@ export const HomePage: React.FC = () => {
                 </div>
                 <p className="text-sm">
                     © {new Date().getFullYear()} Smart Canteen &amp; Billing Management System.
-                    Developed for academic and learning purposes.
+                    
                 </p>
             </footer>
         </div>

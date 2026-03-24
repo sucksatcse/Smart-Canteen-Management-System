@@ -1,16 +1,26 @@
-INSERT INTO sessions (name, createdAt, duration) VALUES 
-('Math Class', '2024-12-18 09:00:00', 60),
-('Science Lecture', '2024-12-18 11:00:00', 90),
-('History Discussion', '2024-12-18 14:00:00', 120),
-('Art Workshop', '2024-12-18 16:00:00', 45),
-('Music Practice', '2024-12-18 18:00:00', 30);
+-- Smart Canteen Management System - Seed Data
+-- Run after 001_init_tables.sql
 
+USE `smart_canteen`;
 
-INSERT INTO attendances (session_id, roll, created_at, updated_at) VALUES
-(1, 'A001', '2024-12-18 09:10:00', '2024-12-18 09:30:00'),
-(1, 'A002', '2024-12-18 09:15:00', '2024-12-18 09:40:00'),
-(2, 'B001', '2024-12-18 11:20:00', '2024-12-18 11:50:00'),
-(2, 'B002', '2024-12-18 11:25:00', '2024-12-18 11:55:00'),
-(3, 'C001', '2024-12-18 14:10:00', '2024-12-18 14:40:00'),
-(4, 'D001', '2024-12-18 16:05:00', '2024-12-18 16:30:00'),
-(5, 'E001', '2024-12-18 18:05:00', '2024-12-18 18:25:00');
+-- ─────────────────────────────────────────────
+-- USERS (password: "password" bcrypt hash)
+-- ─────────────────────────────────────────────
+INSERT INTO `users` (`name`, `email`, `password`, `role`) VALUES
+('Admin User',    'admin@smartcanteen.com',    '$2y$12$hGFgIwBGE9.C9t1JZMGf4OVfCPKNe3bTzP2T3y0s/eKS3gX4R.8Vy', 'admin'),
+('John Customer', 'customer@smartcanteen.com', '$2y$12$hGFgIwBGE9.C9t1JZMGf4OVfCPKNe3bTzP2T3y0s/eKS3gX4R.8Vy', 'customer');
+
+-- ─────────────────────────────────────────────
+-- MENU ITEMS
+-- ─────────────────────────────────────────────
+INSERT INTO `menu_items` (`name`, `description`, `price`, `category`, `available`) VALUES
+('Chicken Rice Bowl',   'Grilled chicken with steamed rice and vegetables',   120.00, 'main',    TRUE),
+('Beef Burger',         'Juicy beef patty with lettuce, tomato and cheese',   150.00, 'main',    TRUE),
+('Vegetable Fried Rice','Stir-fried rice with seasonal vegetables',           90.00,  'main',    TRUE),
+('French Fries',        'Crispy golden fries with dipping sauce',             60.00,  'snack',   TRUE),
+('Spring Rolls',        'Crispy rolls filled with mixed vegetables',          50.00,  'snack',   TRUE),
+('Mango Lassi',         'Chilled yogurt drink blended with fresh mango',      45.00,  'drinks',  TRUE),
+('Fresh Orange Juice',  'Freshly squeezed orange juice',                      55.00,  'drinks',  TRUE),
+('Mineral Water',       'Chilled mineral water (500ml)',                      20.00,  'drinks',  TRUE),
+('Chocolate Cake Slice','Rich moist chocolate cake slice',                    70.00,  'dessert', TRUE),
+('Fruit Salad',         'Seasonal fresh fruit mix with honey drizzle',        65.00,  'dessert', TRUE);
