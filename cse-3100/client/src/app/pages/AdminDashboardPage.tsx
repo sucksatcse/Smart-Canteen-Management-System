@@ -10,7 +10,10 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell
+} from 'recharts';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
@@ -60,6 +63,27 @@ export const AdminDashboardPage: React.FC = () => {
       sales: daySales,
     });
   }
+
+  // Popular items — count how many times each item appears across all orders
+  const itemCountMap: Record<string, number> = {};
+  orders.forEach(order => {
+    order.items.forEach(item => {
+      const name = item.menu_item?.name ?? `#${item.menu_item_id}`;
+      itemCountMap[name] = (itemCountMap[name] || 0) + item.quantity;
+    });
+  });
+  const popularItems = Object.entries(itemCountMap)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+
+  // Low stock items (available attribute from API)
+  const lowStockItems = menuItems.filter((m: any) => {
+    const stock = m.StockQuantity ?? m.stock_quantity ?? null;
+    return stock !== null && stock < 10;
+  });
+
+  const BAR_COLORS = ['#f97316', '#fb923c', '#fdba74', '#fcd34d', '#86efac', '#67e8f9'];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,6 +194,58 @@ export const AdminDashboardPage: React.FC = () => {
               />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* Popular Items + Low Stock — side by side */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          {/* Popular Items Bar Chart */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4">🔥 Most Popular Items</h2>
+            {popularItems.length === 0 ? (
+              <p className="text-gray-400 text-sm py-8 text-center">No order data yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={popularItems} layout="vertical" margin={{ left: 10, right: 20 }}>
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                  <Tooltip formatter={(v: number) => [`${v} sold`, 'Qty']} />
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                    {popularItems.map((_, i) => (
+                      <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Low Stock Alerts */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4">⚠️ Low Stock Alerts</h2>
+            {lowStockItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-green-600">
+                <span className="text-4xl mb-2">✅</span>
+                <p className="font-medium">All items are well-stocked!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {lowStockItems.map((item: any) => {
+                  const stock = item.StockQuantity ?? item.stock_quantity ?? 0;
+                  return (
+                    <div key={item.id ?? item.ItemID} className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{item.name}</p>
+                        <p className="text-xs text-gray-500 capitalize">{item.category}</p>
+                      </div>
+                      <span className={`text-sm font-bold px-2 py-1 rounded-full ${stock === 0 ? 'bg-red-500 text-white' : 'bg-orange-100 text-orange-700'}`}>
+                        {stock === 0 ? 'OUT' : `${stock} left`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Recent Orders */}

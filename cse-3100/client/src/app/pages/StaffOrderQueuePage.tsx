@@ -36,18 +36,32 @@ export const StaffOrderQueuePage: React.FC = () => {
     updateOrderStatus(orderId, 'completed');
   };
 
+  // Staff stats: completed today by any staff (from the global orders list)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const completedToday = completedOrders.filter(o => {
+    if (o.status !== 'completed') return false;
+    const d = new Date(o.updated_at);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  });
+  const revenueServedToday = completedToday.reduce((s, o) => s + Number(o.total_price), 0);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/staff')}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <ChefHat className="w-8 h-8 text-orange-500" />
-            <div>
+            <div className="text-left">
               <h1 className="text-2xl font-bold">Staff Dashboard</h1>
               <p className="text-sm text-gray-600">Welcome, {user?.name}</p>
             </div>
-          </div>
+          </button>
           <div className="flex items-center gap-3">
             <button
               onClick={() => refreshOrders()}
@@ -63,6 +77,28 @@ export const StaffOrderQueuePage: React.FC = () => {
               <LogOut className="w-5 h-5" />
               <span>Logout</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Staff Stats Bar */}
+      <div className="bg-orange-50 border-b border-orange-100">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex gap-6 flex-wrap">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle className="w-4 h-4 text-green-600" />
+            <span className="text-gray-600">Completed today:</span>
+            <span className="font-bold text-gray-900">{completedToday.length}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-400">|</span>
+            <span className="text-gray-600">Revenue served:</span>
+            <span className="font-bold text-orange-600">৳{revenueServedToday.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-400">|</span>
+            <Clock className="w-4 h-4 text-blue-500" />
+            <span className="text-gray-600">Active in queue:</span>
+            <span className="font-bold text-blue-700">{liveOrders.length}</span>
           </div>
         </div>
       </div>
