@@ -9,33 +9,45 @@ class Payment extends Model
 {
     use HasFactory;
 
-    protected $table = 'payments';
+    protected $table = 'Payments';
+    protected $primaryKey = 'PaymentID';
+    public $timestamps = false;
 
     /**
      * The attributes that are mass assignable.
      */
     protected $fillable = [
-        'order_id',
-        'amount',
-        'method',
-        'status',
-        'transaction_id',
-        'paid_at',
+        'OrderID',
+        'Amount',
+        'PaymentMethod',
+        'Status',
+        'PaymentTime',
     ];
 
     /**
      * The attributes that should be cast.
      */
     protected $casts = [
-        'amount'  => 'decimal:2',
-        'paid_at' => 'datetime',
+        'Amount'  => 'decimal:2',
+        'PaymentTime' => 'datetime',
     ];
+
+    protected $appends = ['id', 'order_id', 'amount', 'method', 'status', 'paid_at', 'transaction_id'];
+
+    // Provide lowercase fields for the frontend
+    public function getIdAttribute() { return $this->attributes['PaymentID'] ?? null; }
+    public function getOrderIdAttribute() { return $this->attributes['OrderID'] ?? null; }
+    public function getAmountAttribute() { return $this->attributes['Amount'] ?? null; }
+    public function getMethodAttribute() { return $this->attributes['PaymentMethod'] ?? null; }
+    public function getStatusAttribute() { return $this->attributes['Status'] ?? null; }
+    public function getPaidAtAttribute() { return $this->attributes['PaymentTime'] ?? null; }
+    public function getTransactionIdAttribute() { return null; } // Custom schema doesn't have it
 
     /**
      * A payment belongs to an order.
      */
     public function order()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'OrderID', 'OrderID');
     }
 }

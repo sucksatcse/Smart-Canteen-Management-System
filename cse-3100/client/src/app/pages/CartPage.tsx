@@ -1,19 +1,32 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/app/contexts/AppContext';
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Loader2 } from 'lucide-react';
 
 export const CartPage: React.FC = () => {
   const { cart, updateCartQuantity, removeFromCart, cartTotal, createOrder } = useApp();
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online'>('card');
   const [specialNotes, setSpecialNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
-    
-    createOrder(paymentMethod, specialNotes);
-    navigate('/customer/orders');
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      const order = await createOrder(specialNotes || undefined);
+      if (order) {
+        navigate('/customer/orders');
+      } else {
+        setError('Failed to place order. Please try again.');
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,17 +64,23 @@ export const CartPage: React.FC = () => {
               {cart.map(item => (
                 <div key={item.id} className="bg-white rounded-xl shadow-sm p-4">
                   <div className="flex gap-4">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-24 h-24 object-cover rounded-lg"
-                    />
+                    <div className="w-24 h-24 bg-orange-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {item.image_url ? (
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-3xl">🍽️</span>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg">{item.name}</h3>
                       <p className="text-sm text-gray-600 mt-1">{item.description}</p>
                       <div className="mt-3 flex items-center justify-between">
                         <span className="text-xl font-bold text-orange-500">
-                          ${item.price.toFixed(2)}
+                          ৳{Number(item.price).toFixed(2)}
                         </span>
                         <div className="flex items-center gap-3">
                           <button
@@ -95,7 +114,7 @@ export const CartPage: React.FC = () => {
             <div className="md:col-span-1">
               <div className="bg-white rounded-xl shadow-sm p-6 sticky top-4">
                 <h2 className="font-semibold text-lg mb-4">Order Summary</h2>
-                
+
                 <div className="space-y-3 mb-4">
                   {cart.map(item => (
                     <div key={item.id} className="flex justify-between text-sm">
@@ -103,7 +122,7 @@ export const CartPage: React.FC = () => {
                         {item.name} x {item.quantity}
                       </span>
                       <span className="font-medium">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ৳{(Number(item.price) * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   ))}
@@ -112,23 +131,8 @@ export const CartPage: React.FC = () => {
                 <div className="border-t border-gray-200 pt-3 mb-4">
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total</span>
-                    <span className="text-orange-500">${cartTotal.toFixed(2)}</span>
+                    <span className="text-orange-500">৳{cartTotal.toFixed(2)}</span>
                   </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Method
-                  </label>
-                  <select
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="online">Online Payment</option>
-                  </select>
                 </div>
 
                 <div className="mb-4">
@@ -137,18 +141,32 @@ export const CartPage: React.FC = () => {
                   </label>
                   <textarea
                     value={specialNotes}
-                    onChange={(e) => setSpecialNotes(e.target.value)}
+                    onChange={e => setSpecialNotes(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                     rows={3}
                     placeholder="Any special requests?"
                   />
                 </div>
 
+                {error && (
+                  <div className="mb-3 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
                 <button
                   onClick={handlePlaceOrder}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium"
+                  disabled={isSubmitting}
+                  className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
                 >
-                  Place Order
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Placing Order…
+                    </>
+                  ) : (
+                    'Place Order'
+                  )}
                 </button>
               </div>
             </div>

@@ -8,9 +8,16 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+use Tymon\JWTAuth\Contracts\JWTSubject;
+
+class User extends Authenticatable implements JWTSubject
 {
     use HasApiTokens, HasFactory, Notifiable;
+
+    protected $table = 'Users';
+    protected $primaryKey = 'UserID';
+    const CREATED_AT = 'CreatedAt';
+    const UPDATED_AT = 'UpdatedAt';
 
     /**
      * The attributes that are mass assignable.
@@ -18,10 +25,11 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
+        'Name',
+        'Email',
+        'Role',
+        'PasswordHash',
+        'PhoneNo'
     ];
 
     /**
@@ -30,9 +38,15 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $hidden = [
-        'password',
+        'PasswordHash',
         'remember_token',
     ];
+
+    // Normalize PascalCase DB columns to lowercase via $attributes directly
+    public function getIdAttribute()    { return $this->attributes['UserID'] ?? null; }
+    public function getNameAttribute()  { return $this->attributes['Name'] ?? null; }
+    public function getEmailAttribute() { return $this->attributes['Email'] ?? null; }
+    public function getRoleAttribute()  { return $this->attributes['Role'] ?? null; }
 
     /**
      * The attributes that should be cast.
@@ -42,4 +56,42 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+    /**
+     * Get the identifier that will be stored in the subject claim of the JWT.
+     *
+     * @return mixed
+     */
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    /**
+     * Return a key value array, containing any custom claims to be added to the JWT.
+     *
+     * @return array
+     */
+    public function getJWTCustomClaims()
+    {
+        return [
+            'role' => $this->Role,
+        ];
+    }
+
+    /**
+     * Define the relationship to the Post model.
+     * A user has many posts.
+     */
+    public function posts()
+    {
+        return $this->hasMany(Post::class, 'user_id', 'UserID');
+    }
+
+    /**
+     * Override authentication password retrieval mechanism
+     */
+    public function getAuthPassword()
+    {
+        return $this->PasswordHash;
+    }
 }

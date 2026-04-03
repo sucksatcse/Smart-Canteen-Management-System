@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 import logoImage from '@/assets/000df3ee4acf3c460562d3cd8235bfa52accbd16.png';
@@ -9,34 +9,34 @@ export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [role, setRole] = useState('customer');
   const [error, setError] = useState('');
 
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (isRegister) {
-      const success = register(name, email, password, phone);
-      if (success) {
-        navigate('/customer/menu');
+    try {
+      if (isRegister) {
+        const user = await register(name, email, password, role);
+        if (user) {
+          if (user.role === 'admin') navigate('/admin/dashboard');
+          else if (user.role === 'staff') navigate('/staff/orders');
+          else navigate('/customer/menu');
+        }
       } else {
-        setError('Email already exists');
+        const user = await login(email, password);
+        if (user) {
+          if (user.role === 'admin') navigate('/admin/dashboard');
+          else if (user.role === 'staff') navigate('/staff/orders');
+          else navigate('/customer/menu');
+        }
       }
-    } else {
-      const success = login(email, password, role);
-      if (success) {
-        // Navigate based on role
-        if (role === 'admin') navigate('/admin/dashboard');
-        else if (role === 'staff') navigate('/staff/orders');
-        else navigate('/customer/menu');
-      } else {
-        setError('Invalid credentials');
-      }
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
     }
   };
 
@@ -83,16 +83,16 @@ export const LoginPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
+                    Role
                   </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="+1234567890"
-                    required
-                  />
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="staff">Staff</option>
+                  </select>
                 </div>
               </>
             )}
@@ -125,22 +125,7 @@ export const LoginPage: React.FC = () => {
               />
             </div>
 
-            {!isRegister && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Login as
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="customer">Customer</option>
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            )}
+
 
             {error && (
               <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
@@ -180,16 +165,6 @@ export const LoginPage: React.FC = () => {
             </button>
           </div>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 mb-2">Demo Credentials:</p>
-            <div className="text-xs text-gray-600 space-y-1">
-              <p><strong>Admin:</strong> admin@smartcanteen.com</p>
-              <p><strong>Staff:</strong> staff@smartcanteen.com</p>
-              <p><strong>Customer:</strong> customer@email.com</p>
-              <p className="text-gray-500">Password: any</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

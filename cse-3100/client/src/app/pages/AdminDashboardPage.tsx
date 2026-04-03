@@ -1,43 +1,44 @@
-import React from 'react';
-import { useNavigate } from 'react-router';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useApp } from '@/app/contexts/AppContext';
-import { 
-  LogOut, 
-  DollarSign, 
-  ShoppingBag, 
-  Clock, 
-  AlertTriangle,
+import {
+  LogOut,
+  DollarSign,
+  ShoppingBag,
+  Clock,
   TrendingUp,
-  Package,
   Users
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export const AdminDashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { orders, menuItems } = useApp();
+  const { orders, menuItems, refreshOrders } = useApp();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  useEffect(() => {
+    refreshOrders();
+  }, [refreshOrders]);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
-  // Calculate KPIs
+  // Calculate KPIs using API field names
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const todayOrders = orders.filter(order => {
-    const orderDate = new Date(order.createdAt);
+    const orderDate = new Date(order.created_at);
     orderDate.setHours(0, 0, 0, 0);
     return orderDate.getTime() === today.getTime();
   });
 
-  const todaySales = todayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+  const todaySales = todayOrders.reduce((sum, order) => sum + Number(order.total_price), 0);
   const totalOrders = orders.length;
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'preparing').length;
-  const lowStockItems = menuItems.filter(item => item.stockQuantity < 10).length;
 
   // Generate chart data (last 7 days)
   const chartData = [];
@@ -45,18 +46,18 @@ export const AdminDashboardPage: React.FC = () => {
     const date = new Date();
     date.setDate(date.getDate() - i);
     date.setHours(0, 0, 0, 0);
-    
+
     const dayOrders = orders.filter(order => {
-      const orderDate = new Date(order.createdAt);
+      const orderDate = new Date(order.created_at);
       orderDate.setHours(0, 0, 0, 0);
       return orderDate.getTime() === date.getTime();
     });
-    
-    const daySales = dayOrders.reduce((sum, order) => sum + order.totalAmount, 0);
-    
+
+    const daySales = dayOrders.reduce((sum, order) => sum + Number(order.total_price), 0);
+
     chartData.push({
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      sales: daySales
+      sales: daySales,
     });
   }
 
@@ -110,10 +111,10 @@ export const AdminDashboardPage: React.FC = () => {
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">${todaySales.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-gray-900">৳{todaySales.toFixed(2)}</p>
             <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
-              +12% from yesterday
+              {todayOrders.length} orders today
             </p>
           </div>
 
@@ -141,13 +142,13 @@ export const AdminDashboardPage: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Low Stock</span>
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span className="text-gray-600">Menu Items</span>
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 text-purple-600" />
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{lowStockItems}</p>
-            <p className="text-sm text-red-600 mt-2">Items need restock</p>
+            <p className="text-3xl font-bold text-gray-900">{menuItems.length}</p>
+            <p className="text-sm text-gray-600 mt-2">Available items</p>
           </div>
         </div>
 
@@ -160,10 +161,10 @@ export const AdminDashboardPage: React.FC = () => {
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Line 
-                type="monotone" 
-                dataKey="sales" 
-                stroke="#f97316" 
+              <Line
+                type="monotone"
+                dataKey="sales"
+                stroke="#f97316"
                 strokeWidth={2}
                 dot={{ fill: '#f97316', r: 4 }}
               />
@@ -179,7 +180,6 @@ export const AdminDashboardPage: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Order ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Customer</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Items</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Total</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Status</th>
@@ -187,28 +187,31 @@ export const AdminDashboardPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {orders.slice(0, 5).map(order => (
+                {orders.slice(0, 10).map(order => (
                   <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium">{order.id}</td>
-                    <td className="px-4 py-3 text-sm">{order.customerName}</td>
+                    <td className="px-4 py-3 text-sm font-medium">#{order.id}</td>
                     <td className="px-4 py-3 text-sm">{order.items.length} items</td>
-                    <td className="px-4 py-3 text-sm font-medium">${order.totalAmount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm font-medium">৳{Number(order.total_price).toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'pending'   ? 'bg-yellow-100 text-yellow-800' :
                         order.status === 'preparing' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'ready'     ? 'bg-indigo-100 text-indigo-800' :
                         'bg-green-100 text-green-800'
                       }`}>
                         {order.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {order.createdAt.toLocaleTimeString()}
+                      {new Date(order.created_at).toLocaleTimeString()}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {orders.length === 0 && (
+              <p className="text-center text-gray-500 py-8">No orders yet</p>
+            )}
           </div>
         </div>
       </div>

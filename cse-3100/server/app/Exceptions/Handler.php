@@ -48,12 +48,25 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $exception)
     {
-        $message = $this->getMessage($exception);
+        if ($request->expectsJson() || $request->is('api/*')) {
+            $statusCode = 500;
+            if ($this->isHttpException($exception)) {
+                $statusCode = $exception->getStatusCode();
+            } elseif ($exception instanceof \Illuminate\Auth\AuthenticationException) {
+                $statusCode = 401;
+            } elseif ($exception instanceof \Illuminate\Validation\ValidationException) {
+                $statusCode = 422;
+            } elseif ($exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                $statusCode = 404;
+            }
 
-        return response()->json([
-            'success' => false,
-            'message' => $message,
-        ], 200);
+            return response()->json([
+                'success' => false,
+                'message' => $this->getMessage($exception),
+            ], $statusCode);
+        }
+
+        return parent::render($request, $exception);
     }
 
 

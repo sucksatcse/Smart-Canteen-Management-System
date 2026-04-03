@@ -1,154 +1,200 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { CartItem, Order, MenuItem, mockMenuItems, mockOrders } from '@/app/data/mockData';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import axiosInstance from '@/lib/axios';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface MenuItem {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: 'main' | 'snack' | 'drinks' | 'dessert';
+  image_url: string | null;
+  available: boolean;
+}
+
+export interface CartItem extends MenuItem {
+  quantity: number;
+}
+
+export interface OrderItem {
+  id: number;
+  menu_item_id: number;
+  quantity: number;
+  unit_price: number;
+  menu_item: MenuItem;
+}
+
+export interface Order {
+  id: number;
+  user_id: number;
+  status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+  total_price: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  items: OrderItem[];
+}
+
+// ─── Context Types ─────────────────────────────────────────────────────────────
 
 interface AppContextType {
-  // Cart
+  // Cart (localStorage-backed)
   cart: CartItem[];
   addToCart: (item: MenuItem) => void;
-  removeFromCart: (itemId: string) => void;
-  updateCartQuantity: (itemId: string, quantity: number) => void;
+  removeFromCart: (itemId: number) => void;
+  updateCartQuantity: (itemId: number, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
 
-  // Orders
+  // Orders (API-backed)
   orders: Order[];
-  createOrder: (paymentMethod: 'cash' | 'card' | 'online', specialNotes?: string) => void;
-  updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  isOrdersLoading: boolean;
+  createOrder: (notes?: string) => Promise<Order | null>;
+  updateOrderStatus: (orderId: number, status: Order['status']) => Promise<void>;
+  refreshOrders: () => Promise<void>;
 
-  // Menu Items
+  // Menu (API-backed)
   menuItems: MenuItem[];
-  updateMenuItem: (id: string, updates: Partial<MenuItem>) => void;
-  addMenuItem: (item: Omit<MenuItem, 'id'>) => void;
-  deleteMenuItem: (id: string) => void;
+  isMenuLoading: boolean;
+  refreshMenu: () => Promise<void>;
+
+  // Admin menu management (API-backed)
+  addMenuItem: (item: Omit<MenuItem, 'id' | 'available'>) => Promise<void>;
+  updateMenuItem: (id: number, updates: Partial<MenuItem>) => Promise<void>;
+  deleteMenuItem: (id: number) => Promise<void>;
 }
+
+// ─── Context ──────────────────────────────────────────────────────────────────
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(mockMenuItems);
-
-  // Load cart from localStorage
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (e) {
-        console.error('Failed to parse cart from localStorage', e);
-        localStorage.removeItem('cart');
-      }
+  // Cart state (localStorage-backed for speed)
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-  }, []);
+  });
 
-  // Save cart to localStorage
+  // API-backed state
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isMenuLoading, setIsMenuLoading] = useState(true);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isOrdersLoading, setIsOrdersLoading] = useState(false);
+
+  // Persist cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Simulate real-time order status updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setOrders(prevOrders => {
-        return prevOrders.map(order => {
-          if (order.status === 'pending' && Math.random() > 0.7) {
-            return { ...order, status: 'preparing' as const };
-          }
-          if (order.status === 'preparing' && Math.random() > 0.8) {
-            return { ...order, status: 'completed' as const, estimatedTime: 0 };
-          }
-          return order;
-        });
-      });
-    }, 10000); // Update every 10 seconds
+  // ── Menu API ────────────────────────────────────────────────────────────────
 
-    return () => clearInterval(interval);
+  const refreshMenu = useCallback(async () => {
+    setIsMenuLoading(true);
+    try {
+      const res = await axiosInstance.get('/api/menu');
+      setMenuItems(res.data);
+    } catch (err) {
+      console.error('Failed to fetch menu:', err);
+    } finally {
+      setIsMenuLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    refreshMenu();
+  }, [refreshMenu]);
+
+  // ── Orders API ──────────────────────────────────────────────────────────────
+
+  const refreshOrders = useCallback(async () => {
+    setIsOrdersLoading(true);
+    try {
+      const res = await axiosInstance.get('/api/orders');
+      setOrders(res.data);
+    } catch (err) {
+      console.error('Failed to fetch orders:', err);
+    } finally {
+      setIsOrdersLoading(false);
+    }
+  }, []);
+
+  // ── Cart operations ─────────────────────────────────────────────────────────
+
   const addToCart = (item: MenuItem) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
-      if (existingItem) {
-        return prevCart.map(cartItem =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
+    setCart(prev => {
+      const existing = prev.find(c => c.id === item.id);
+      if (existing) {
+        return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
       }
-      return [...prevCart, { ...item, quantity: 1 }];
+      return [...prev, { ...item, quantity: 1 }];
     });
   };
 
-  const removeFromCart = (itemId: string) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
+  const removeFromCart = (itemId: number) => {
+    setCart(prev => prev.filter(c => c.id !== itemId));
   };
 
-  const updateCartQuantity = (itemId: string, quantity: number) => {
+  const updateCartQuantity = (itemId: number, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(itemId);
       return;
     }
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item.id === itemId ? { ...item, quantity } : item
-      )
-    );
+    setCart(prev => prev.map(c => c.id === itemId ? { ...c, quantity } : c));
   };
 
-  const clearCart = () => {
-    setCart([]);
+  const clearCart = () => setCart([]);
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  // ── Order operations ────────────────────────────────────────────────────────
+
+  const createOrder = async (notes?: string): Promise<Order | null> => {
+    try {
+      const res = await axiosInstance.post('/api/orders', {
+        items: cart.map(c => ({ menu_item_id: c.id, quantity: c.quantity })),
+        notes: notes || null,
+      });
+      const newOrder: Order = res.data;
+      setOrders(prev => [newOrder, ...prev]);
+      clearCart();
+      return newOrder;
+    } catch (err) {
+      console.error('Failed to place order:', err);
+      return null;
+    }
   };
 
-  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
-
-  const createOrder = (paymentMethod: 'cash' | 'card' | 'online', specialNotes?: string) => {
-    const storedUser = localStorage.getItem('currentUser');
-    const user = storedUser ? JSON.parse(storedUser) : null;
-
-    const newOrder: Order = {
-      id: `ORD-${String(orders.length + 1).padStart(3, '0')}`,
-      customerId: user?.id || 'guest',
-      customerName: user?.name || 'Guest',
-      items: [...cart],
-      totalAmount: cartTotal,
-      status: 'pending',
-      createdAt: new Date(),
-      estimatedTime: 25,
-      paymentMethod,
-      specialNotes
-    };
-
-    setOrders(prevOrders => [newOrder, ...prevOrders]);
-    clearCart();
+  const updateOrderStatus = async (orderId: number, status: Order['status']) => {
+    try {
+      const res = await axiosInstance.put(`/api/orders/${orderId}/status`, { status });
+      setOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
+    } catch (err) {
+      console.error('Failed to update order status:', err);
+    }
   };
 
-  const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.id === orderId
-          ? { ...order, status, estimatedTime: status === 'completed' ? 0 : order.estimatedTime }
-          : order
-      )
-    );
+  // ── Admin menu management ───────────────────────────────────────────────────
+
+  const addMenuItem = async (item: Omit<MenuItem, 'id' | 'available'>) => {
+    await axiosInstance.post('/api/menu', item);
+    await refreshMenu();
   };
 
-  const updateMenuItem = (id: string, updates: Partial<MenuItem>) => {
-    setMenuItems(prevItems =>
-      prevItems.map(item => (item.id === id ? { ...item, ...updates } : item))
-    );
+  const updateMenuItem = async (id: number, updates: Partial<MenuItem>) => {
+    await axiosInstance.put(`/api/menu/${id}`, updates);
+    await refreshMenu();
   };
 
-  const addMenuItem = (item: Omit<MenuItem, 'id'>) => {
-    const newItem: MenuItem = {
-      ...item,
-      id: String(menuItems.length + 1)
-    };
-    setMenuItems(prevItems => [...prevItems, newItem]);
-  };
-
-  const deleteMenuItem = (id: string) => {
-    setMenuItems(prevItems => prevItems.filter(item => item.id !== id));
+  const deleteMenuItem = async (id: number) => {
+    await axiosInstance.delete(`/api/menu/${id}`);
+    await refreshMenu();
   };
 
   return (
@@ -161,12 +207,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         clearCart,
         cartTotal,
         orders,
+        isOrdersLoading,
         createOrder,
         updateOrderStatus,
+        refreshOrders,
         menuItems,
-        updateMenuItem,
+        isMenuLoading,
+        refreshMenu,
         addMenuItem,
-        deleteMenuItem
+        updateMenuItem,
+        deleteMenuItem,
       }}
     >
       {children}
@@ -176,8 +226,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider');
-  }
+  if (!context) throw new Error('useApp must be used within AppProvider');
   return context;
 };

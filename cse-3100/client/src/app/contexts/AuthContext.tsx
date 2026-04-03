@@ -1,69 +1,103 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, mockUsers } from '@/app/data/mockData';
+import axios from '@/lib/axios';
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'staff' | 'customer';
+  created_at?: string;
+  updated_at?: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: string) => boolean;
-  register: (name: string, email: string, password: string, phone: string) => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<User | null>;
+  register: (name: string, email: string, password: string, role?: string) => Promise<User | null>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Check for stored user on mount
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
+    const fetchUser = async () => {
       try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Failed to parse currentUser from localStorage', e);
-        localStorage.removeItem('currentUser');
+        const token = localStorage.getItem('jwt_token');
+        if (!token) {
+            setUser(null);
+            return;
+        }
+
+        const response = await axios.get('/api/auth/me');
+        if (response.data && response.data.id) {
+          setUser(response.data);
+        } else {
+          setUser(null);
+          localStorage.removeItem('jwt_token');
+        }
+      } catch (error) {
+        setUser(null);
+        localStorage.removeItem('jwt_token');
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, []);
-
-  const login = (email: string, password: string, role: string): boolean => {
-    // Simple mock authentication
-    const foundUser = mockUsers.find(u => u.email === email && u.role === role);
-
-    if (foundUser) {
-      setUser(foundUser);
-      localStorage.setItem('currentUser', JSON.stringify(foundUser));
-      return true;
-    }
-    return false;
-  };
-
-  const register = (name: string, email: string, password: string, phone: string): boolean => {
-    // Check if user already exists
-    const existingUser = mockUsers.find(u => u.email === email);
-    if (existingUser) {
-      return false;
-    }
-
-    // Create new customer user
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      role: 'customer',
-      phone
     };
 
-    mockUsers.push(newUser);
-    setUser(newUser);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    return true;
+    fetchUser();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<User | null> => {
+    try {
+      const response = await axios.post('/api/auth/login', { email, password });
+      if (response.data.access_token) {
+          localStorage.setItem('jwt_token', response.data.access_token);
+          setUser(response.data.user);
+          return response.data.user;
+      }
+      return null;
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 401) throw new Error('Incorrect email or password.');
+      if (status === 422) throw new Error('Please enter a valid email and password.');
+      throw new Error('Unable to sign in. Please try again.');
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
+  const register = async (name: string, email: string, password: string, role: string = 'customer'): Promise<User | null> => {
+    try {
+      await axios.post('/api/auth/register', { name, email, password, role });
+      return await login(email, password);
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 400 || status === 422) {
+        const data = error?.response?.data;
+        if (data && typeof data === 'object') {
+          const messages = Object.values(data).flat().join(' ');
+          if (messages) throw new Error(messages);
+        }
+        throw new Error(data?.message || 'Please check your details and try again.');
+      }
+      // Re-throw login errors from auto-login after register
+      if (error?.message && !error?.response) throw error;
+      throw new Error('Registration failed. Please try again.');
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await axios.post('/api/auth/logout');
+    } catch (error) {
+      console.error('Logout failed', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('jwt_token');
+    }
   };
 
   return (
@@ -73,10 +107,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         register,
         logout,
-        isAuthenticated: !!user
+        isAuthenticated: !!user,
+        isLoading
       }}
     >
-      {children}
+      {/* Do not render app routes while initially fetching user session to prevent login flashes */}
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 };

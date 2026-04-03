@@ -9,33 +9,53 @@ class MenuItem extends Model
 {
     use HasFactory;
 
-    protected $table = 'menu_items';
+    protected $table = 'Menu';
+    protected $primaryKey = 'ItemID';
 
     /**
      * The attributes that are mass assignable.
      */
     protected $fillable = [
-        'name',
-        'description',
-        'price',
-        'category',
-        'image_url',
-        'available',
+        'CanteenID',
+        'Name',
+        'Category',
+        'Price',
+        'StockQuantity',
+        'IsAvailable',
+        'ImageURL',
     ];
 
     /**
      * The attributes that should be cast.
      */
     protected $casts = [
-        'price'     => 'decimal:2',
-        'available' => 'boolean',
+        'Price'       => 'decimal:2',
+        'IsAvailable' => 'boolean',
     ];
+
+    // Hidden attributes from raw output
+    protected $hidden = [
+        'CreatedAt',
+        'UpdatedAt',
+    ];
+
+    // These normalized properties will be attached
+    protected $appends = ['id', 'name', 'category', 'price', 'image_url', 'available', 'description'];
+
+    // Provide lowercase fields for the frontend
+    public function getIdAttribute() { return $this->attributes['ItemID'] ?? null; }
+    public function getNameAttribute() { return $this->attributes['Name'] ?? null; }
+    public function getCategoryAttribute() { return $this->attributes['Category'] ?? null; }
+    public function getPriceAttribute() { return $this->attributes['Price'] ?? null; }
+    public function getAvailableAttribute() { return $this->attributes['IsAvailable'] ?? null; }
+    public function getImageUrlAttribute() { return $this->attributes['ImageURL'] ?? null; }
+    public function getDescriptionAttribute() { return null; } // No description in custom schema
 
     /**
      * A menu item can appear in many order items.
      */
     public function orderItems()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(OrderItem::class, 'ItemID', 'ItemID');
     }
 }
