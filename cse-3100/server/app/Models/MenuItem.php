@@ -11,6 +11,8 @@ class MenuItem extends Model
 
     protected $table = 'Menu';
     protected $primaryKey = 'ItemID';
+    const CREATED_AT = 'CreatedAt';
+    const UPDATED_AT = 'UpdatedAt';
 
     /**
      * The attributes that are mass assignable.
@@ -45,7 +47,14 @@ class MenuItem extends Model
     // Provide lowercase fields for the frontend
     public function getIdAttribute() { return $this->attributes['ItemID'] ?? null; }
     public function getNameAttribute() { return $this->attributes['Name'] ?? null; }
-    public function getCategoryAttribute() { return $this->attributes['Category'] ?? null; }
+    public function getCategoryAttribute()
+    {
+        $rawCategory = $this->attributes['Category'] ?? null;
+        // Normalize legacy DB values to frontend categories
+        if ($rawCategory === 'meals') return 'main';
+        if ($rawCategory === 'snacks') return 'snack';
+        return $rawCategory;
+    }
     public function getPriceAttribute() { return $this->attributes['Price'] ?? null; }
     public function getAvailableAttribute() { return $this->attributes['IsAvailable'] ?? null; }
     public function getImageUrlAttribute() { return $this->attributes['ImageURL'] ?? null; }

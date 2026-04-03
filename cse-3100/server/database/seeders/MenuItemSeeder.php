@@ -15,20 +15,28 @@ class MenuItemSeeder extends Seeder
     public function run()
     {
         $items = [
-            ['name' => 'Chicken Rice Bowl', 'description' => 'Grilled chicken with steamed rice and vegetables', 'price' => 120.00, 'category' => 'main'],
-            ['name' => 'Beef Burger', 'description' => 'Juicy beef patty with lettuce, tomato and cheese', 'price' => 150.00, 'category' => 'main'],
-            ['name' => 'Vegetable Fried Rice', 'description' => 'Stir-fried rice with seasonal vegetables', 'price' => 90.00, 'category' => 'main'],
-            ['name' => 'French Fries', 'description' => 'Crispy golden fries with dipping sauce', 'price' => 60.00, 'category' => 'snack'],
-            ['name' => 'Spring Rolls', 'description' => 'Crispy rolls filled with mixed vegetables', 'price' => 50.00, 'category' => 'snack'],
-            ['name' => 'Mango Lassi', 'description' => 'Chilled yogurt drink blended with fresh mango', 'price' => 45.00, 'category' => 'drinks'],
-            ['name' => 'Fresh Orange Juice', 'description' => 'Freshly squeezed orange juice', 'price' => 55.00, 'category' => 'drinks'],
-            ['name' => 'Mineral Water', 'description' => 'Chilled mineral water (500ml)', 'price' => 20.00, 'category' => 'drinks'],
-            ['name' => 'Chocolate Cake Slice', 'description' => 'Rich moist chocolate cake slice', 'price' => 70.00, 'category' => 'dessert'],
-            ['name' => 'Fruit Salad', 'description' => 'Seasonal fresh fruit mix with honey drizzle', 'price' => 65.00, 'category' => 'dessert'],
+            ['Name' => 'Chicken Rice Bowl', 'Price' => 120.00, 'Category' => 'main'],
+            ['Name' => 'Beef Burger', 'Price' => 150.00, 'Category' => 'main'],
+            ['Name' => 'Vegetable Fried Rice', 'Price' => 90.00, 'Category' => 'main'],
+            ['Name' => 'French Fries', 'Price' => 60.00, 'Category' => 'snack'],
+            ['Name' => 'Spring Rolls', 'Price' => 50.00, 'Category' => 'snack'],
+            ['Name' => 'Mango Lassi', 'Price' => 45.00, 'Category' => 'drinks'],
+            ['Name' => 'Fresh Orange Juice', 'Price' => 55.00, 'Category' => 'drinks'],
+            ['Name' => 'Mineral Water', 'Price' => 20.00, 'Category' => 'drinks'],
+            ['Name' => 'Chocolate Cake Slice', 'Price' => 70.00, 'Category' => 'dessert'],
+            ['Name' => 'Fruit Salad', 'Price' => 65.00, 'Category' => 'dessert'],
         ];
 
         foreach ($items as $item) {
-            MenuItem::updateOrCreate(['name' => $item['name']], $item);
+            MenuItem::updateOrCreate(
+                ['Name' => $item['Name']],
+                array_merge($item, [
+                    'CanteenID' => 1,
+                    'IsAvailable' => true,
+                    'StockQuantity' => 100,
+                    'ImageURL' => null,
+                ])
+            );
         }
     }
 }

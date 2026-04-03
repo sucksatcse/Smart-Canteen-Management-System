@@ -9,6 +9,7 @@ import { AppProvider } from '@/app/contexts/AppContext';
 
 import { HomePage } from '@/app/pages/HomePage';
 import { LoginPage } from '@/app/pages/LoginPage';
+import { RegisterPage } from '@/app/pages/Register';
 import { CustomerMenuPage } from '@/app/pages/CustomerMenuPage';
 import { CartPage } from '@/app/pages/CartPage';
 import { OrderStatusPage } from '@/app/pages/OrderStatusPage';
@@ -57,6 +58,18 @@ const AppRoutes: React.FC = () => {
                 <Navigate to="/customer/menu" replace />
           ) : (
             <LoginPage />
+          )
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          isAuthenticated ? (
+            user?.role === 'admin' ? <Navigate to="/admin/dashboard" replace /> :
+              user?.role === 'staff' ? <Navigate to="/staff/orders" replace /> :
+                <Navigate to="/customer/menu" replace />
+          ) : (
+            <RegisterPage />
           )
         }
       />

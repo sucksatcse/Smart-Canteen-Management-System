@@ -17,21 +17,34 @@ class UserSeeder extends Seeder
     {
         // Admin Profile
         User::updateOrCreate(
-            ['email' => 'admin@smartcanteen.com'],
+            ['Email' => 'admin@smartcanteen.com'],
             [
-                'name' => 'Admin User',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
+                'Name' => 'Admin User',
+                'PasswordHash' => Hash::make('password'),
+                'Role' => 'admin',
+                'PhoneNo' => '+1234567890',
+            ]
+        );
+
+        // Staff Profile
+        User::updateOrCreate(
+            ['Email' => 'staff@smartcanteen.com'],
+            [
+                'Name' => 'Staff User',
+                'PasswordHash' => Hash::make('password'),
+                'Role' => 'staff',
+                'PhoneNo' => '+1234567891',
             ]
         );
 
         // Customer Profile
         User::updateOrCreate(
-            ['email' => 'customer@smartcanteen.com'],
+            ['Email' => 'customer@smartcanteen.com'],
             [
-                'name' => 'John Customer',
-                'password' => Hash::make('password'),
-                'role' => 'customer',
+                'Name' => 'John Customer',
+                'PasswordHash' => Hash::make('password'),
+                'Role' => 'customer',
+                'PhoneNo' => '+1234567892',
             ]
         );
     }
