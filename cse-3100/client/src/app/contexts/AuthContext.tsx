@@ -13,7 +13,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<User | null>;
-  register: (name: string, email: string, password: string, role?: string) => Promise<User | null>;
+  register: (name: string, email: string, password: string, role: string, contactNo: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -69,10 +69,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const register = async (name: string, email: string, password: string, role: string = 'customer'): Promise<User | null> => {
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    role: string,
+    contactNo: string
+  ): Promise<void> => {
     try {
-      await axios.post('/api/auth/register', { name, email, password, role });
-      return await login(email, password);
+      await axios.post('/api/auth/register', {
+        name,
+        email,
+        password,
+        password_confirmation: password,
+        role,
+        contact_no: contactNo
+      });
     } catch (error: any) {
       const status = error?.response?.status;
       if (status === 400 || status === 422) {
@@ -83,8 +95,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         throw new Error(data?.message || 'Please check your details and try again.');
       }
-      // Re-throw login errors from auto-login after register
-      if (error?.message && !error?.response) throw error;
       throw new Error('Registration failed. Please try again.');
     }
   };
