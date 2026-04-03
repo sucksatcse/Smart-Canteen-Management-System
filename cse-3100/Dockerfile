@@ -65,6 +65,7 @@ RUN composer install
 # Set environment variables for server
 RUN touch .env
 RUN echo "APP_NAME=${APP_NAME}" >> .env && \
+    echo "SESSION_LIFETIME=1440" >> .env && \
     echo "APP_ENV=${APP_ENV}" >> .env && \
     echo "APP_KEY=${APP_KEY}" >> .env && \
     echo "APP_DEBUG=${APP_DEBUG}" >> .env && \

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { ArrowLeft, DollarSign, Clock, Users, Edit2, Save, X } from 'lucide-react';
 import { Employee, mockEmployees } from '@/app/data/mockData';

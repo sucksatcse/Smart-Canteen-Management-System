@@ -4,47 +4,54 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // ─── Auth (existing) ──────────────────────────────────────────────────
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-
-// ─── Canteen (new) ────────────────────────────────────────────────────
+use App\Http\Controllers\JWTAuthController;
+use App\Http\Controllers\PostController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes – Smart Canteen Management System
+| API Routes – Smart Canteen Management System & JWT Assignment
 |--------------------------------------------------------------------------
 */
 
-// ── Authenticated user info ───────────────────────────────────────────
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-    return $request->user();
+// ── JWT Auth Endpoints ──────────────────────────────────────────────────
+Route::group([
+    'middleware' => 'api',
+    'prefix' => 'auth'
+], function ($router) {
+    Route::post('/register', [JWTAuthController::class, 'register']);
+    Route::post('/login', [JWTAuthController::class, 'login']);
+    Route::post('/logout', [JWTAuthController::class, 'logout']);
+    Route::get('/me', [JWTAuthController::class, 'me']);
 });
 
-// ── Menu Routes ───────────────────────────────────────────────────────
-// Public: anyone can browse the menu
-Route::get('/menu', [MenuController::class, 'index']);
-
-// Admin only: manage menu items
-Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::post('/menu',          [MenuController::class, 'store']);
-    Route::put('/menu/{id}',      [MenuController::class, 'update']);
-    Route::delete('/menu/{id}',   [MenuController::class, 'destroy']);
+// ── Posts CRUD (JWT Protected) ─────────────────────────────────────────
+Route::middleware(['auth:api'])->group(function () {
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::post('/posts', [PostController::class, 'store']);
+    Route::get('/posts/{id}', [PostController::class, 'show']);
+    Route::put('/posts/{id}', [PostController::class, 'update']);
+    Route::delete('/posts/{id}', [PostController::class, 'destroy']);
 });
 
-// ── Order Routes ──────────────────────────────────────────────────────
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/orders',                    [OrderController::class, 'index']);
-    Route::post('/orders',                   [OrderController::class, 'store']);
-    // Admin only: update order status
-    Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus'])
-        ->middleware('role:admin');
-});
-
-// ── Payment Routes ────────────────────────────────────────────────────
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/payments',     [PaymentController::class, 'store']);
+// ── Canteen Routes (JWT Protected) ──────────────────────────────────────
+Route::middleware(['auth:api'])->group(function () {
+    Route::get('/menu', [MenuController::class, 'index']);
+    
+    // Admin only
+    Route::middleware(['role:admin'])->group(function () {
+        Route::post('/menu',          [MenuController::class, 'store']);
+        Route::put('/menu/{id}',      [MenuController::class, 'update']);
+        Route::delete('/menu/{id}',   [MenuController::class, 'destroy']);
+    });
+    
+    // Orders & Payments
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus'])->middleware('role:admin');
+    
+    Route::post('/payments', [PaymentController::class, 'store']);
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
 });

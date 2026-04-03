@@ -9,32 +9,44 @@ class OrderItem extends Model
 {
     use HasFactory;
 
-    protected $table = 'order_items';
+    protected $table = 'OrderItems';
+    protected $primaryKey = 'OrderItemID';
+    public $timestamps = false;
 
     /**
      * The attributes that are mass assignable.
      */
     protected $fillable = [
-        'order_id',
-        'menu_item_id',
-        'quantity',
-        'unit_price',
+        'OrderID',
+        'ItemID',
+        'Quantity',
+        'UnitPrice',
     ];
 
     /**
      * The attributes that should be cast.
      */
     protected $casts = [
-        'unit_price' => 'decimal:2',
-        'quantity'   => 'integer',
+        'UnitPrice' => 'decimal:2',
+        'Quantity'  => 'integer',
     ];
+
+    protected $appends = ['id', 'order_id', 'menu_item_id', 'quantity', 'unit_price'];
+
+    // Provide lowercase fields for the frontend
+    public function getIdAttribute() { return $this->attributes['OrderItemID'] ?? null; }
+    public function getOrderIdAttribute() { return $this->attributes['OrderID'] ?? null; }
+    public function getMenuItemIdAttribute() { return $this->attributes['ItemID'] ?? null; }
+    public function getQuantityAttribute() { return $this->attributes['Quantity'] ?? null; }
+    public function getUnitPriceAttribute() { return $this->attributes['UnitPrice'] ?? null; }
+
 
     /**
      * An order item belongs to a specific order.
      */
     public function order()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'OrderID', 'OrderID');
     }
 
     /**
@@ -42,7 +54,7 @@ class OrderItem extends Model
      */
     public function menuItem()
     {
-        return $this->belongsTo(MenuItem::class);
+        return $this->belongsTo(MenuItem::class, 'ItemID', 'ItemID');
     }
 
     /**
@@ -50,6 +62,6 @@ class OrderItem extends Model
      */
     public function getSubtotalAttribute(): float
     {
-        return $this->unit_price * $this->quantity;
+        return ($this->attributes['UnitPrice'] ?? 0) * ($this->attributes['Quantity'] ?? 0);
     }
 }

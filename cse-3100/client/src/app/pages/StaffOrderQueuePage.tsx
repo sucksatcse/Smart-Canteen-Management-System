@@ -1,29 +1,33 @@
-import React from 'react';
-import { useNavigate } from 'react-router';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useApp } from '@/app/contexts/AppContext';
-import { LogOut, Clock, ChefHat, CheckCircle, Hash, User } from 'lucide-react';
+import { LogOut, Clock, ChefHat, CheckCircle, RefreshCw } from 'lucide-react';
 
 export const StaffOrderQueuePage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { orders, updateOrderStatus } = useApp();
+  const { orders, updateOrderStatus, refreshOrders } = useApp();
   const navigate = useNavigate();
 
-  const activeOrders = orders.filter(order => 
+  useEffect(() => {
+    refreshOrders();
+  }, [refreshOrders]);
+
+  const activeOrders = orders.filter(order =>
     order.status === 'pending' || order.status === 'preparing'
   );
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
-  const handleAcceptOrder = (orderId: string) => {
+  const handleAcceptOrder = (orderId: number) => {
     updateOrderStatus(orderId, 'preparing');
   };
 
-  const handleCompleteOrder = (orderId: string) => {
-    updateOrderStatus(orderId, 'completed');
+  const handleCompleteOrder = (orderId: number) => {
+    updateOrderStatus(orderId, 'ready');
   };
 
   return (
@@ -38,20 +42,31 @@ export const StaffOrderQueuePage: React.FC = () => {
               <p className="text-sm text-gray-600">Welcome, {user?.name}</p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-lg"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Logout</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => refreshOrders()}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"
+              title="Refresh orders"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-lg"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-2">Live Order Queue</h2>
-          <p className="text-gray-600">Manage incoming orders in real-time</p>
+          <p className="text-gray-600">
+            {activeOrders.length} active order{activeOrders.length !== 1 ? 's' : ''}
+          </p>
         </div>
 
         {activeOrders.length === 0 ? (
@@ -70,10 +85,7 @@ export const StaffOrderQueuePage: React.FC = () => {
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold">Order #{order.id}</h3>
-                    <p className="text-sm text-gray-600">{order.customerName}</p>
-                  </div>
+                  <h3 className="text-lg font-bold">Order #{order.id}</h3>
                   <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                     order.status === 'pending'
                       ? 'bg-yellow-100 text-yellow-800'
@@ -83,55 +95,33 @@ export const StaffOrderQueuePage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Table Number and Assigned Staff */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Hash className="w-4 h-4 text-purple-600" />
-                      <p className="text-xs font-medium text-purple-700">Table</p>
-                    </div>
-                    <p className="text-lg font-bold text-purple-900">
-                      {order.tableNumber || 'N/A'}
-                    </p>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <User className="w-4 h-4 text-blue-600" />
-                      <p className="text-xs font-medium text-blue-700">Staff</p>
-                    </div>
-                    <p className="text-sm font-semibold text-blue-900">
-                      {order.assignedStaff || 'Unassigned'}
-                    </p>
-                  </div>
-                </div>
-
                 <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Clock className="w-4 h-4" />
                     <span>
-                      {Math.floor((Date.now() - order.createdAt.getTime()) / 60000)} min ago
+                      {Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000)} min ago
                     </span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Est. time: {order.estimatedTime} min
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <p className="text-sm font-medium text-gray-700">Items:</p>
-                  {order.items.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex justify-between text-sm">
                       <span className="text-gray-700">
-                        {item.quantity}x {item.name}
+                        {item.quantity}x {item.menu_item?.name ?? `Item #${item.menu_item_id}`}
+                      </span>
+                      <span className="text-gray-500">
+                        ৳{(Number(item.unit_price) * item.quantity).toFixed(2)}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                {order.specialNotes && (
+                {order.notes && (
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
-                    <p className="text-xs font-medium text-orange-800 mb-1">Special Notes:</p>
-                    <p className="text-sm text-orange-900">{order.specialNotes}</p>
+                    <p className="text-xs font-medium text-orange-800 mb-1">Notes:</p>
+                    <p className="text-sm text-orange-900">{order.notes}</p>
                   </div>
                 )}
 
@@ -139,11 +129,8 @@ export const StaffOrderQueuePage: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Total</span>
                     <span className="text-lg font-bold text-orange-500">
-                      ${order.totalAmount.toFixed(2)}
+                      ৳{Number(order.total_price).toFixed(2)}
                     </span>
-                  </div>
-                  <div className="text-xs text-gray-600 mt-1">
-                    Payment: {order.paymentMethod}
                   </div>
                 </div>
 
@@ -159,7 +146,7 @@ export const StaffOrderQueuePage: React.FC = () => {
                     onClick={() => handleCompleteOrder(order.id)}
                     className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-medium"
                   >
-                    Mark as Completed
+                    Mark as Ready
                   </button>
                 )}
               </div>
