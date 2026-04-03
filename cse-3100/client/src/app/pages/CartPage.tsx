@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/app/contexts/AppContext';
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Loader2 } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Loader2, UtensilsCrossed, ShoppingBag as TakeawayIcon } from 'lucide-react';
+
+type DiningMode = 'dine-in' | 'takeaway';
 
 export const CartPage: React.FC = () => {
   const { cart, updateCartQuantity, removeFromCart, cartTotal, createOrder } = useApp();
   const [specialNotes, setSpecialNotes] = useState('');
+  const [diningMode, setDiningMode] = useState<DiningMode>('dine-in');
+  const [tableNumber, setTableNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return;
+    if (diningMode === 'dine-in' && !tableNumber.trim()) {
+      setError('Please enter your table number for dine-in orders.');
+      return;
+    }
     setIsSubmitting(true);
     setError('');
 
     try {
-      const order = await createOrder(specialNotes || undefined);
+      const order = await createOrder(specialNotes || undefined, diningMode === 'dine-in' ? tableNumber : undefined);
       if (order) {
         navigate('/customer/orders');
       } else {
@@ -114,6 +122,52 @@ export const CartPage: React.FC = () => {
             <div className="md:col-span-1">
               <div className="bg-white rounded-xl shadow-sm p-6 sticky top-4">
                 <h2 className="font-semibold text-lg mb-4">Order Summary</h2>
+
+                {/* Dine-In / Takeaway Toggle */}
+                <div className="mb-5">
+                  <p className="text-sm font-medium text-gray-700 mb-2">How are you eating?</p>
+                  <div className="flex rounded-xl overflow-hidden border border-gray-200 bg-gray-100 p-1 gap-1">
+                    <button
+                      onClick={() => setDiningMode('dine-in')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        diningMode === 'dine-in'
+                          ? 'bg-orange-500 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <UtensilsCrossed className="w-4 h-4" />
+                      Dine-In
+                    </button>
+                    <button
+                      onClick={() => { setDiningMode('takeaway'); setTableNumber(''); }}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        diningMode === 'takeaway'
+                          ? 'bg-orange-500 text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <TakeawayIcon className="w-4 h-4" />
+                      Takeaway
+                    </button>
+                  </div>
+
+                  {/* Animated Table Number Input */}
+                  <div
+                    className="overflow-hidden transition-all duration-300"
+                    style={{ maxHeight: diningMode === 'dine-in' ? '80px' : '0px', opacity: diningMode === 'dine-in' ? 1 : 0 }}
+                  >
+                    <div className="pt-3">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Table Number</label>
+                      <input
+                        type="text"
+                        value={tableNumber}
+                        onChange={e => setTableNumber(e.target.value)}
+                        placeholder="e.g. T-5"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 <div className="space-y-3 mb-4">
                   {cart.map(item => (

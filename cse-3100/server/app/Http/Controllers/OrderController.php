@@ -40,6 +40,7 @@ class OrderController extends Controller
             'items.*.menu_item_id' => 'required|exists:Menu,ItemID',
             'items.*.quantity'     => 'required|integer|min:1',
             'notes'                => 'nullable|string|max:500',
+            'table_number'         => 'nullable|string|max:10',
         ]);
 
         $order = DB::transaction(function () use ($validated, $request) {
@@ -62,10 +63,11 @@ class OrderController extends Controller
             // Create the order
             $order = Order::create([
                 'CustomerID'      => $request->user()->id,
-                'CanteenID'       => 1, // Assumption per business logic
+                'CanteenID'       => 1,
                 'Status'          => 'pending',
                 'TotalAmount'     => $totalPrice,
                 'SpecialNotes'    => $validated['notes'] ?? null,
+                'TableNumber'     => $validated['table_number'] ?? null,
             ]);
 
             // Create all order items

@@ -51,7 +51,7 @@ interface AppContextType {
   // Orders (API-backed)
   orders: Order[];
   isOrdersLoading: boolean;
-  createOrder: (notes?: string) => Promise<Order | null>;
+  createOrder: (notes?: string, tableNumber?: string) => Promise<Order | null>;
   updateOrderStatus: (orderId: number, status: Order['status']) => Promise<void>;
   refreshOrders: () => Promise<void>;
 
@@ -169,11 +169,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // ── Order operations ────────────────────────────────────────────────────────
 
-  const createOrder = async (notes?: string): Promise<Order | null> => {
+  const createOrder = async (notes?: string, tableNumber?: string): Promise<Order | null> => {
     try {
       const res = await axiosInstance.post('/api/orders', {
         items: cart.map(c => ({ menu_item_id: c.id, quantity: c.quantity })),
         notes: notes || null,
+        table_number: tableNumber || null,
       });
       const newOrder: Order = res.data;
       setOrders(prev => [newOrder, ...prev]);
