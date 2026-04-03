@@ -24,7 +24,7 @@ class CheckRole
      * @param  string    $role  Required role (e.g. 'admin', 'customer')
      * @return mixed
      */
-    public function handle(Request $request, Closure $next, string $role)
+    public function handle(Request $request, Closure $next, ...$roles)
     {
         $user = $request->user();
 
@@ -34,10 +34,10 @@ class CheckRole
             ], 401);
         }
 
-        if ($user->role !== $role) {
+        if (!in_array($user->role, $roles)) {
             return response()->json([
                 'message' => 'Forbidden. You do not have the required role.',
-                'required_role' => $role,
+                'required_roles' => $roles,
                 'your_role'     => $user->role,
             ], 403);
         }

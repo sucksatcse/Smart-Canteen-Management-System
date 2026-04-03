@@ -16,7 +16,23 @@ class MenuController extends Controller
         $items = MenuItem::where('IsAvailable', true)
             ->orderBy('Category')
             ->orderBy('Name')
-            ->get();
+            ->get()
+            ->map(function ($item) {
+                // Manually mapping categories
+                $cat = $item->Category;
+                if ($cat === 'meals') $cat = 'main';
+                if ($cat === 'snacks') $cat = 'snack';
+
+                return [
+                    'id'          => $item->ItemID,
+                    'name'        => $item->Name,
+                    'category'    => $cat,
+                    'price'       => (float) $item->Price,
+                    'image_url'   => $item->ImageURL,
+                    'available'   => (bool) $item->IsAvailable,
+                    'description' => null,
+                ];
+            });
 
         return response()->json($items);
     }

@@ -36,10 +36,10 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'items'              => 'required|array|min:1',
-            'items.*.menu_item_id' => 'required|exists:menu_items,id',
-            'items.*.quantity'   => 'required|integer|min:1',
-            'notes'              => 'nullable|string|max:500',
+            'items'                => 'required|array|min:1',
+            'items.*.menu_item_id' => 'required|exists:Menu,ItemID',
+            'items.*.quantity'     => 'required|integer|min:1',
+            'notes'                => 'nullable|string|max:500',
         ]);
 
         $order = DB::transaction(function () use ($validated, $request) {
@@ -77,6 +77,14 @@ class OrderController extends Controller
                 ]);
             }
 
+            // Create synchronous payment record
+            $order->payment()->create([
+                'Amount'        => $totalPrice,
+                'PaymentMethod' => 'cash', // Defaulted to cash for now
+                'Status'        => 'completed',
+                'PaymentTime'   => now(),
+            ]);
+
             return $order->load('items.menuItem');
         });
 
@@ -94,7 +102,15 @@ class OrderController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        $order->update(['Status' => $validated['status']]);
+
+        $updateData = ['Status' => $validated['status']];
+
+        // Assign the staff member exclusively when they move the order to "preparing"
+        if ($validated['status'] === 'preparing' && !$order->AssignedStaffID) {
+            $updateData['AssignedStaffID'] = $request->user()->id;
+        }
+
+        $order->update($updateData);
 
         return response()->json($order->load('items.menuItem'));
     }

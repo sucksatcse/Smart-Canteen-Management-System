@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import axiosInstance from '@/lib/axios';
+import { useAuth } from './AuthContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+
   // Cart state (localStorage-backed for speed)
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -107,10 +110,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
-  useEffect(() => {
-    refreshMenu();
-  }, [refreshMenu]);
-
   // ── Orders API ──────────────────────────────────────────────────────────────
 
   const refreshOrders = useCallback(async () => {
@@ -124,6 +123,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setIsOrdersLoading(false);
     }
   }, []);
+
+  // Hydrate data when user logs in, clear when user logs out
+  useEffect(() => {
+    if (user) {
+      refreshMenu();
+      if (user.role !== 'admin') { // Admin pulls all lazily
+          refreshOrders();
+      } else {
+          refreshOrders(); // Admin might need orders immediately too
+      }
+    } else {
+      setMenuItems([]);
+      setOrders([]);
+    }
+  }, [user, refreshMenu, refreshOrders]);
 
   // ── Cart operations ─────────────────────────────────────────────────────────
 

@@ -48,8 +48,16 @@ class Order extends Model
     public function getStatusAttribute() { return $this->attributes['Status'] ?? null; }
     public function getTotalPriceAttribute() { return $this->attributes['TotalAmount'] ?? null; }
     public function getNotesAttribute() { return $this->attributes['SpecialNotes'] ?? null; }
-    public function getCreatedAtAttribute() { return $this->attributes['CreatedAt'] ?? null; }
-    public function getUpdatedAtAttribute() { return $this->attributes['UpdatedAt'] ?? null; }
+    
+    public function getCreatedAtAttribute() { 
+        $val = $this->attributes['CreatedAt'] ?? null;
+        return $val ? \Carbon\Carbon::parse($val)->toIso8601String() : null;
+    }
+    
+    public function getUpdatedAtAttribute() { 
+        $val = $this->attributes['UpdatedAt'] ?? null;
+        return $val ? \Carbon\Carbon::parse($val)->toIso8601String() : null;
+    }
 
     /**
      * An order belongs to a user (customer).
