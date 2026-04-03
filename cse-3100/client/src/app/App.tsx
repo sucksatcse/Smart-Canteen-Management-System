@@ -14,6 +14,7 @@ import { CustomerMenuPage } from '@/app/pages/CustomerMenuPage';
 import { CartPage } from '@/app/pages/CartPage';
 import { OrderStatusPage } from '@/app/pages/OrderStatusPage';
 import { StaffOrderQueuePage } from '@/app/pages/StaffOrderQueuePage';
+import { StaffProfilePage } from '@/app/pages/StaffProfilePage';
 import { AdminDashboardPage } from '@/app/pages/AdminDashboardPage';
 import { MenuManagementPage } from '@/app/pages/MenuManagementPage';
 import { InventoryManagementPage } from '@/app/pages/InventoryManagementPage';
@@ -101,6 +102,14 @@ const AppRoutes: React.FC = () => {
       />
 
       {/* Staff Routes */}
+      <Route
+        path="/staff"
+        element={
+          <ProtectedRoute allowedRoles={['staff']}>
+            <StaffProfilePage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/staff/orders"
         element={

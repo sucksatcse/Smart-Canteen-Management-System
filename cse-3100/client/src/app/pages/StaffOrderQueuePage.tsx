@@ -52,13 +52,16 @@ export const StaffOrderQueuePage: React.FC = () => {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/staff')}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <ChefHat className="w-8 h-8 text-orange-500" />
-            <div>
+            <div className="text-left">
               <h1 className="text-2xl font-bold">Staff Dashboard</h1>
               <p className="text-sm text-gray-600">Welcome, {user?.name}</p>
             </div>
-          </div>
+          </button>
           <div className="flex items-center gap-3">
             <button
               onClick={() => refreshOrders()}
