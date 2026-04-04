@@ -92,13 +92,19 @@ export const HomePage: React.FC = () => {
             <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     {/* Logo — clicking it comes back here */}
-                    <button
-                        onClick={() => navigate('/')}
-                        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
-                    >
-                        <img src={logo} alt="Smart Canteen" className="w-10 h-10" />
-                        <span className="text-xl font-bold text-gray-900">Smart Canteen</span>
-                    </button>
+                    <div className="flex items-center gap-10">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                        >
+                            <img src={logo} alt="Smart Canteen" className="w-10 h-10" />
+                            <span className="text-xl font-bold text-gray-900">Smart Canteen</span>
+                        </button>
+
+                        <div className="hidden md:flex items-center gap-6">
+                            <button onClick={() => navigate('/about')} className="text-gray-600 hover:text-orange-500 font-medium transition-colors">Contact</button>
+                        </div>
+                    </div>
 
                     {/* Right side: username or login button */}
                     {isAuthenticated && user ? (
@@ -272,13 +278,19 @@ export const HomePage: React.FC = () => {
 
             {/* ── Footer ── */}
             <footer className="bg-gray-900 text-gray-400 py-10 px-6 text-center">
-                <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="flex items-center justify-center gap-2 mb-4">
                     <img src={logo} alt="Smart Canteen" className="w-7 h-7 opacity-80" />
-                    <span className="text-white font-semibold">Smart Canteen</span>
+                    <span className="text-white font-semibold flex items-center">Smart Canteen</span>
                 </div>
+                
+                <div className="flex justify-center gap-6 mb-6">
+                    <button onClick={() => navigate('/about')} className="text-gray-400 hover:text-white transition-colors">
+                        Contact
+                    </button>
+                </div>
+
                 <p className="text-sm">
                     © {new Date().getFullYear()} Smart Canteen &amp; Billing Management System.
-                    
                 </p>
             </footer>
         </div>
