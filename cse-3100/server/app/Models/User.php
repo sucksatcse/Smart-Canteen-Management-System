@@ -29,7 +29,8 @@ class User extends Authenticatable implements JWTSubject
         'Email',
         'Role',
         'PasswordHash',
-        'PhoneNo'
+        'PhoneNo',
+        'AvatarPath',
     ];
 
     /**
@@ -43,10 +44,16 @@ class User extends Authenticatable implements JWTSubject
     ];
 
     // Normalize PascalCase DB columns to lowercase via $attributes directly
-    public function getIdAttribute()    { return $this->attributes['UserID'] ?? null; }
-    public function getNameAttribute()  { return $this->attributes['Name'] ?? null; }
-    public function getEmailAttribute() { return $this->attributes['Email'] ?? null; }
-    public function getRoleAttribute()  { return $this->attributes['Role'] ?? null; }
+    public function getIdAttribute()       { return $this->attributes['UserID'] ?? null; }
+    public function getNameAttribute()     { return $this->attributes['Name'] ?? null; }
+    public function getEmailAttribute()    { return $this->attributes['Email'] ?? null; }
+    public function getRoleAttribute()     { return $this->attributes['Role'] ?? null; }
+    public function getPhoneAttribute()    { return $this->attributes['PhoneNo'] ?? null; }
+    public function getAvatarUrlAttribute()
+    {
+        $path = $this->attributes['AvatarPath'] ?? null;
+        return $path ? url('storage/' . $path) : null;
+    }
 
     /**
      * The attributes that should be cast.

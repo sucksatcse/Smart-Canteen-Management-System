@@ -37,13 +37,16 @@ export const CustomerMenuPage: React.FC = () => {
       {/* Top Navbar */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
             <img src={logo} alt="Smart Canteen" className="w-10 h-10" />
-            <div>
+            <div className="text-left">
               <h1 className="text-xl font-bold text-gray-900">Smart Canteen</h1>
               <p className="text-xs text-gray-500">Welcome, {user?.name}</p>
             </div>
-          </div>
+          </button>
 
           <div className="flex items-center gap-4">
             <button
