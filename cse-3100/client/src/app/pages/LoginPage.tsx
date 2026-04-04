@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useApp } from '@/app/contexts/AppContext';
 import { LogIn, ArrowLeft } from 'lucide-react';
 import logoImage from '@/assets/000df3ee4acf3c460562d3cd8235bfa52accbd16.png';
 
@@ -11,6 +12,7 @@ export const LoginPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login } = useAuth();
+  const { clearCart } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const registerSuccessMessage = useMemo(() => {
@@ -26,6 +28,13 @@ export const LoginPage: React.FC = () => {
       setIsSubmitting(true);
       const user = await login(email, password);
       if (user) {
+        // If the user just registered (based on the flag set during registration),
+        // clear any leftover items in the local cart to provide a fresh start.
+        if (localStorage.getItem('just_registered') === 'true') {
+          clearCart();
+          localStorage.removeItem('just_registered');
+        }
+
         if (user.role === 'admin') navigate('/admin/dashboard');
         else if (user.role === 'staff') navigate('/staff/orders');
         else navigate('/customer/menu');

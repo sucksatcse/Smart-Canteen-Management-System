@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useApp } from '@/app/contexts/AppContext';
-import { ShoppingCart, LogOut, Plus, Loader2 } from 'lucide-react';
+import { ShoppingCart, LogOut, Plus, Loader2, Search } from 'lucide-react';
 import logo from '@/assets/000df3ee4acf3c460562d3cd8235bfa52accbd16.png';
 
 type Category = 'all' | 'main' | 'snack' | 'drinks' | 'dessert';
@@ -17,13 +17,17 @@ const CATEGORIES: { id: Category; name: string }[] = [
 
 export const CustomerMenuPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useAuth();
   const { menuItems, isMenuLoading, cart, addToCart } = useApp();
   const navigate = useNavigate();
 
-  const filteredItems = selectedCategory === 'all'
-    ? menuItems
-    : menuItems.filter(item => item.category === selectedCategory);
+  const filteredItems = menuItems.filter(item => {
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
 
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -39,14 +43,30 @@ export const CustomerMenuPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-shrink-0"
           >
             <img src={logo} alt="Smart Canteen" className="w-10 h-10" />
-            <div className="text-left">
-              <h1 className="text-xl font-bold text-gray-900">Smart Canteen</h1>
-              <p className="text-xs text-gray-500">Welcome, {user?.name}</p>
+            <div className="text-left hidden sm:block">
+              <h1 className="text-xl font-bold text-gray-900 leading-none">Smart Canteen</h1>
+              <p className="text-[10px] text-gray-500 mt-1">Welcome, {user?.name}</p>
             </div>
           </button>
+
+          {/* Search Bar */}
+          <div className="flex-1 max-w-xl px-4">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search for something delicious…"
+                className="block w-full pl-10 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl leading-5 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 sm:text-sm transition-all shadow-sm"
+              />
+            </div>
+          </div>
 
           <div className="flex items-center gap-4">
             <button
@@ -163,7 +183,11 @@ export const CustomerMenuPage: React.FC = () => {
 
                 {filteredItems.length === 0 && (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">No items found in this category</p>
+                    <p className="text-gray-500">
+                      {searchQuery 
+                        ? `No items matching "${searchQuery}" found`
+                        : "No items found in this category"}
+                    </p>
                   </div>
                 )}
               </>

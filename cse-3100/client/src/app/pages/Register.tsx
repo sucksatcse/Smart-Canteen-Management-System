@@ -47,6 +47,9 @@ export const RegisterPage: React.FC = () => {
     try {
       setIsSubmitting(true);
       await register(name, email, password, role, contactNo);
+      // Mark this browser as having just completed a registration to ensure 
+      // the next login from this kiosk clears any leftover cart items.
+      localStorage.setItem('just_registered', 'true');
       navigate('/login', { replace: true, state: { registered: true } });
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
