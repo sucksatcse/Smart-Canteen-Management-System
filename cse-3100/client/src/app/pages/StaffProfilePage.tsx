@@ -57,7 +57,7 @@ export const StaffProfilePage: React.FC = () => {
 
       updateUser({ avatar_url: res.data.avatar_url });
     } catch (err: any) {
-      setUploadError(err?.response?.data?.message ?? 'Upload failed. Please try again.');
+      setUploadError('Unable to upload');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
