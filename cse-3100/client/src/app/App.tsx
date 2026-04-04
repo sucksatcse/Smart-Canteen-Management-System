@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/app/contexts/AuthContext';
 import { AppProvider } from '@/app/contexts/AppContext';
 
 import { HomePage } from '@/app/pages/HomePage';
+import { AboutUsPage } from '@/app/pages/AboutUsPage';
 import { LoginPage } from '@/app/pages/LoginPage';
 import { RegisterPage } from '@/app/pages/Register';
 import { CustomerMenuPage } from '@/app/pages/CustomerMenuPage';
@@ -48,6 +49,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Home — always public */}
       <Route path="/" element={<HomePage />} />
+      <Route path="/about" element={<AboutUsPage />} />
 
       {/* Login / Register */}
       <Route
