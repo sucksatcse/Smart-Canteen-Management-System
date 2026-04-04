@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/app/contexts/AuthContext';
 import {
     ShoppingCart,
     ClipboardList,
@@ -13,6 +14,7 @@ import {
     ChefHat,
     Receipt,
     PackageSearch,
+    UserCircle,
 } from 'lucide-react';
 import logo from '@/assets/000df3ee4acf3c460562d3cd8235bfa52accbd16.png';
 
@@ -73,6 +75,15 @@ const features = [
 
 export const HomePage: React.FC = () => {
     const navigate = useNavigate();
+    const { user, isAuthenticated } = useAuth();
+
+    // Redirect user back to their respective dashboard
+    const getDashboardPath = () => {
+        if (!user) return '/login';
+        if (user.role === 'admin') return '/admin/dashboard';
+        if (user.role === 'staff') return '/staff/orders';
+        return '/customer/menu';
+    };
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
@@ -89,14 +100,26 @@ export const HomePage: React.FC = () => {
                         <span className="text-xl font-bold text-gray-900">Smart Canteen</span>
                     </button>
 
-                    <button
-                        id="home-login-btn"
-                        onClick={() => navigate('/login')}
-                        className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
-                    >
-                        Login / Register
-                        <ArrowRight className="w-4 h-4" />
-                    </button>
+                    {/* Right side: username or login button */}
+                    {isAuthenticated && user ? (
+                        <button
+                            onClick={() => navigate(getDashboardPath())}
+                            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+                        >
+                            <UserCircle className="w-5 h-5" />
+                            {user.name}
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    ) : (
+                        <button
+                            id="home-login-btn"
+                            onClick={() => navigate('/login')}
+                            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+                        >
+                            Login / Register
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
             </nav>
 
@@ -119,10 +142,10 @@ export const HomePage: React.FC = () => {
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button
                             id="hero-get-started-btn"
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate(getDashboardPath())}
                             className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-8 py-3.5 rounded-xl font-semibold text-lg transition-colors shadow-md hover:shadow-lg"
                         >
-                            Get Started
+                            {isAuthenticated ? 'Go to Dashboard' : 'Get Started'}
                             <ArrowRight className="w-5 h-5" />
                         </button>
                         <button
@@ -238,10 +261,10 @@ export const HomePage: React.FC = () => {
                     </p>
                     <button
                         id="cta-login-btn"
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate(getDashboardPath())}
                         className="inline-flex items-center gap-2 bg-white text-orange-600 hover:bg-orange-50 px-10 py-4 rounded-xl font-bold text-lg transition-colors shadow-lg"
                     >
-                        Login / Register
+                        {isAuthenticated ? 'Go to Dashboard' : 'Login / Register'}
                         <ArrowRight className="w-5 h-5" />
                     </button>
                 </div>

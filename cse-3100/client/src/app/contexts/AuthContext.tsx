@@ -6,6 +6,8 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'staff' | 'customer';
+  phone?: string | null;
+  avatar_url?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -15,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User | null>;
   register: (name: string, email: string, password: string, role: string, contactNo: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -110,6 +113,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...updates } : prev);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -117,6 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         register,
         logout,
+        updateUser,
         isAuthenticated: !!user,
         isLoading
       }}

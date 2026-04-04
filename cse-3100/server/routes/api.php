@@ -9,6 +9,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,4 +55,8 @@ Route::middleware(['auth:api'])->group(function () {
     
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
+
+    // Profile
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
 });

@@ -79,10 +79,12 @@ class JWTAuthController extends Controller
     {
         $user = auth('api')->user();
         return response()->json([
-            'id'    => $user->UserID,
-            'name'  => $user->name,
-            'email' => $user->email,
-            'role'  => $user->role,
+            'id'         => $user->UserID,
+            'name'       => $user->name,
+            'email'      => $user->email,
+            'role'       => $user->role,
+            'phone'      => $user->phone,
+            'avatar_url' => $user->avatar_url,
         ]);
     }
 
@@ -106,10 +108,12 @@ class JWTAuthController extends Controller
             'token_type'   => 'bearer',
             'expires_in'   => auth('api')->factory()->getTTL() * 60,
             'user' => [
-                'id'    => $user->UserID,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'role'  => $user->role,
+                'id'         => $user->UserID,
+                'name'       => $user->name,
+                'email'      => $user->email,
+                'role'       => $user->role,
+                'phone'      => $user->phone,
+                'avatar_url' => $user->avatar_url,
             ],
         ]);
     }
