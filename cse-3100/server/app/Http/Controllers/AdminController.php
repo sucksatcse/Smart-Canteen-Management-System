@@ -5,11 +5,25 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * AdminController
+ *
+ * Handles all admin-only API endpoints including dashboard analytics,
+ * staff/salary management, user management, and order management.
+ * All routes are protected by 'auth:api' and 'role:admin' middleware.
+ */
 class AdminController extends Controller
 {
     /**
      * GET /api/admin/dashboard
-     * Returns KPI data, chart data, popular items, and recent orders.
+     *
+     * Aggregates real-time analytics data for the admin dashboard:
+     * - KPI cards: today's revenue/orders, active orders, completed orders, low stock
+     * - Chart data: last 7 days revenue trend
+     * - Popular items: top 5 menu items by quantity sold (JOIN OrderItems + Menu)
+     * - Recent orders: last 10 orders with customer names and item counts
+     *
+     * @return \Illuminate\Http\JsonResponse  JSON with kpi, chartData, popularItems, recentOrders
      */
     public function dashboard()
     {
@@ -106,7 +120,14 @@ class AdminController extends Controller
 
     /**
      * GET /api/admin/staff
-     * Returns all staff and admin users with salary details.
+     *
+     * Returns all users with role 'staff' or 'admin', LEFT JOINed with
+     * the StaffDetails table to include payroll information.
+     * LEFT JOIN is used (instead of INNER JOIN) so that staff members
+     * who don't have a StaffDetails row yet still appear in the list.
+     * Total salary is computed as: hourlyRate × workingHours.
+     *
+     * @return \Illuminate\Http\JsonResponse  Array of staff records with salary details
      */
     public function getStaff()
     {
@@ -142,6 +163,17 @@ class AdminController extends Controller
         return response()->json($staff);
     }
 
+    /**
+     * DELETE /api/admin/staff/{userId}
+     *
+     * Permanently removes a staff member from the system.
+     * Deletes StaffDetails first (FK constraint), then nullifies
+     * any order assignments, and finally deletes the User row.
+     *
+     * @param  int|string  $userId  The UserID of the staff member to delete
+     * @return \Illuminate\Http\JsonResponse  Success/error message
+     * @throws \Exception  If a database constraint prevents deletion
+     */
     public function deleteStaff($userId)
     {
         try {
@@ -164,7 +196,15 @@ class AdminController extends Controller
 
     /**
      * PUT /api/admin/staff/{id}
-     * Updates staff salary details (hourly rate and working hours).
+     *
+     * Updates or creates salary details for a staff member.
+     * If a StaffDetails row exists (matched by StaffID), it is updated.
+     * Otherwise, a new row is inserted linking to the User's ID.
+     * Request body must include: hourlyRate (numeric), workingHours (numeric), userId (string).
+     *
+     * @param  \Illuminate\Http\Request  $request  Contains hourlyRate, workingHours, userId
+     * @param  int|string  $id  The StaffID (or UserID) to update
+     * @return \Illuminate\Http\JsonResponse  Success message
      */
     public function updateStaffSalary(Request $request, $id)
     {
@@ -207,7 +247,12 @@ class AdminController extends Controller
 
     /**
      * GET /api/admin/users
-     * Returns all users with order counts.
+     *
+     * Returns all registered users with their order counts.
+     * For each user, a subquery counts their orders from the Orders table.
+     * Results are ordered by creation date (newest first).
+     *
+     * @return \Illuminate\Http\JsonResponse  Array of user records with orderCount
      */
     public function getUsers()
     {
@@ -226,7 +271,15 @@ class AdminController extends Controller
 
     /**
      * GET /api/admin/orders
-     * Returns all orders with item details for admin view.
+     *
+     * Returns all orders with their item details for the admin view.
+     * Uses a two-query approach for performance:
+     *  1. Fetch all orders (JOIN Users for customer names)
+     *  2. Fetch all order items (JOIN Menu for food names/prices)
+     * Then maps items to their respective orders in PHP rather than
+     * using a subquery per order (N+1 problem avoided).
+     *
+     * @return \Illuminate\Http\JsonResponse  Array of formatted order objects with nested items
      */
     public function getAllOrders()
     {
