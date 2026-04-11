@@ -142,15 +142,15 @@ class AdminController extends Controller
         return response()->json($staff);
     }
 
-    /**
-     * DELETE /api/admin/staff/{userId}
-     * Deletes a staff member and their details.
-     */
     public function deleteStaff($userId)
     {
         try {
             // Remove StaffDetails first (FK constraint)
             DB::table('StaffDetails')->where('StaffID', $userId)->delete();
+            
+            // Detach staff from any orders they were assigned to
+            DB::table('Orders')->where('AssignedStaffID', $userId)->update(['AssignedStaffID' => null]);
+            
             // Remove the user
             $deleted = DB::table('Users')->where('UserID', $userId)->delete();
             if (!$deleted) {
