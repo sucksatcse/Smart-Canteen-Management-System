@@ -6,32 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateMenuItemsTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('menu_items', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->decimal('price', 8, 2);
-            $table->string('category', 100)->default('general');
-            $table->string('image_url', 500)->nullable();
-            $table->boolean('available')->default(true);
-            $table->timestamps();
+        Schema::create('Menu', function (Blueprint $table) {
+            $table->bigIncrements('ItemID');
+            $table->string('Name');
+            $table->string('Category', 100)->default('general');
+            $table->decimal('Price', 8, 2);
+            $table->unsignedInteger('StockQuantity')->default(0);
+            $table->boolean('IsAvailable')->default(true);
+            $table->string('ImageURL', 500)->nullable();
+            $table->timestamp('CreatedAt')->nullable();
+            $table->timestamp('UpdatedAt')->nullable();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('menu_items');
+        Schema::dropIfExists('Menu');
     }
 }

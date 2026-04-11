@@ -6,30 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateOrdersTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('orders', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->enum('status', ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])->default('pending');
-            $table->decimal('total_price', 10, 2)->default(0.00);
-            $table->text('notes')->nullable();
-            $table->timestamps();
+        Schema::create('Orders', function (Blueprint $table) {
+            $table->bigIncrements('OrderID');
+            $table->unsignedBigInteger('CustomerID');
+            $table->unsignedBigInteger('AssignedStaffID')->nullable();
+            $table->decimal('TotalAmount', 10, 2)->default(0.00);
+            $table->enum('Status', ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])->default('pending');
+            $table->string('TableNumber')->nullable();
+            $table->text('SpecialNotes')->nullable();
+            $table->timestamp('CreatedAt')->nullable();
+            $table->timestamp('UpdatedAt')->nullable();
+
+            $table->foreign('CustomerID')->references('UserID')->on('Users')->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('orders');
+        Schema::dropIfExists('Orders');
     }
 }

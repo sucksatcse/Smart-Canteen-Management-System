@@ -6,30 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateOrderItemsTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('order_items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('menu_item_id')->constrained()->onDelete('restrict');
-            $table->unsignedInteger('quantity')->default(1);
-            $table->decimal('unit_price', 8, 2);
-            $table->timestamps();
+        Schema::create('OrderItems', function (Blueprint $table) {
+            $table->bigIncrements('OrderItemID');
+            $table->unsignedBigInteger('OrderID');
+            $table->unsignedBigInteger('ItemID');
+            $table->unsignedInteger('Quantity')->default(1);
+            $table->decimal('UnitPrice', 8, 2);
+
+            $table->foreign('OrderID')->references('OrderID')->on('Orders')->onDelete('cascade');
+            $table->foreign('ItemID')->references('ItemID')->on('Menu')->onDelete('restrict');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('order_items');
+        Schema::dropIfExists('OrderItems');
     }
 }

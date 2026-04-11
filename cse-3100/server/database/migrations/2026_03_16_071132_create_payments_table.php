@@ -6,32 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 class CreatePaymentsTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
-        Schema::create('payments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->decimal('amount', 10, 2);
-            $table->enum('method', ['cash', 'card', 'mobile'])->default('cash');
-            $table->enum('status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
-            $table->string('transaction_id')->nullable();
-            $table->timestamp('paid_at')->nullable();
-            $table->timestamps();
+        Schema::create('Payments', function (Blueprint $table) {
+            $table->bigIncrements('PaymentID');
+            $table->unsignedBigInteger('OrderID');
+            $table->decimal('Amount', 10, 2);
+            $table->string('PaymentMethod', 50)->default('cash');
+            $table->enum('Status', ['pending', 'paid', 'failed', 'refunded'])->default('pending');
+            $table->timestamp('PaymentTime')->nullable();
+
+            $table->foreign('OrderID')->references('OrderID')->on('Orders')->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
-        Schema::dropIfExists('payments');
+        Schema::dropIfExists('Payments');
     }
 }
