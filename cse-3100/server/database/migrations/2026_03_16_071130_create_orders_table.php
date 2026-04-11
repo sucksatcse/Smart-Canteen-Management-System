@@ -11,9 +11,10 @@ class CreateOrdersTable extends Migration
         Schema::create('Orders', function (Blueprint $table) {
             $table->bigIncrements('OrderID');
             $table->unsignedBigInteger('CustomerID');
+            $table->unsignedBigInteger('CanteenID')->default(1);
             $table->unsignedBigInteger('AssignedStaffID')->nullable();
             $table->decimal('TotalAmount', 10, 2)->default(0.00);
-            $table->enum('Status', ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'])->default('pending');
+            $table->enum('Status', ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'delivered', 'cancelled'])->default('pending');
             $table->string('TableNumber')->nullable();
             $table->text('SpecialNotes')->nullable();
             $table->timestamp('CreatedAt')->nullable();

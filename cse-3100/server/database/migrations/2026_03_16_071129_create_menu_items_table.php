@@ -10,6 +10,7 @@ class CreateMenuItemsTable extends Migration
     {
         Schema::create('Menu', function (Blueprint $table) {
             $table->bigIncrements('ItemID');
+            $table->unsignedBigInteger('CanteenID')->default(1);
             $table->string('Name');
             $table->string('Category', 100)->default('general');
             $table->decimal('Price', 8, 2);

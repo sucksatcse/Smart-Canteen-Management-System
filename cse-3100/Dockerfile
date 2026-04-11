@@ -85,4 +85,4 @@ RUN chown -R www-data:www-data /var/www/html && \
 EXPOSE 80
 
 # Start Apache server (force remove conflicting MPMs, run migrations, then start)
-CMD sh -c "a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork || true && php artisan migrate --force || true && apache2-foreground"
+CMD sh -c "a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork || true && php artisan migrate:fresh --force || true && apache2-foreground"

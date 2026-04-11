@@ -6,32 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateStaffDetailsTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('StaffDetails', function (Blueprint $table) {
-            $table->id('StaffID');
-            $table->unsignedBigInteger('UserID');
+            // StaffID equals the UserID of the staff member (not auto-increment)
+            $table->unsignedBigInteger('StaffID')->primary();
+            $table->unsignedBigInteger('CanteenID')->default(1);
             $table->decimal('HourlyRate', 10, 2)->default(0);
-            $table->decimal('TotalWorkingHours', 10, 2)->default(0);
+            $table->decimal('WorkingHours', 10, 2)->default(0);
             $table->date('HireDate')->nullable();
 
-            $table->foreign('UserID')
+            $table->foreign('StaffID')
                   ->references('UserID')
                   ->on('Users')
                   ->onDelete('cascade');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('StaffDetails');
