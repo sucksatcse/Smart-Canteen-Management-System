@@ -131,36 +131,40 @@ class AdminController extends Controller
      */
     public function getStaff()
     {
-        $staff = DB::table('Users')
-            ->leftJoin('StaffDetails', 'StaffDetails.StaffID', '=', 'Users.UserID')
-            ->whereIn('Users.Role', ['staff', 'admin', 'Staff', 'Admin'])
-            ->select(
-                'Users.UserID',
-                'Users.Name',
-                'Users.Email',
-                'Users.Role',
-                'StaffDetails.StaffID',
-                'StaffDetails.HourlyRate',
-                'StaffDetails.WorkingHours'
-            )
-            ->get()
-            ->map(function($user) {
-                $hourlyRate    = (float)($user->HourlyRate ?? 0);
-                $workingHours  = (float)($user->WorkingHours ?? 0);
-                return [
-                    'id'           => (string)($user->StaffID ?? $user->UserID),
-                    'userId'       => (string)$user->UserID,
-                    'name'         => $user->Name,
-                    'email'        => $user->Email,
-                    'role'         => strtolower($user->Role),
-                    'hourlyRate'   => $hourlyRate,
-                    'workingHours' => $workingHours,
-                    'totalSalary'  => round($hourlyRate * $workingHours, 2),
-                    'joinedDate'   => date('Y-m-d'),
-                ];
-            });
+        try {
+            $staff = DB::table('Users')
+                ->leftJoin('StaffDetails', 'StaffDetails.StaffID', '=', 'Users.UserID')
+                ->whereIn('Users.Role', ['staff', 'admin', 'Staff', 'Admin'])
+                ->select(
+                    'Users.UserID',
+                    'Users.Name',
+                    'Users.Email',
+                    'Users.Role',
+                    'StaffDetails.StaffID',
+                    'StaffDetails.HourlyRate',
+                    'StaffDetails.WorkingHours'
+                )
+                ->get()
+                ->map(function($user) {
+                    $hourlyRate    = (float)($user->HourlyRate ?? 0);
+                    $workingHours  = (float)($user->WorkingHours ?? 0);
+                    return [
+                        'id'           => (string)($user->StaffID ?? $user->UserID),
+                        'userId'       => (string)$user->UserID,
+                        'name'         => $user->Name,
+                        'email'        => $user->Email,
+                        'role'         => strtolower($user->Role),
+                        'hourlyRate'   => $hourlyRate,
+                        'workingHours' => $workingHours,
+                        'totalSalary'  => round($hourlyRate * $workingHours, 2),
+                        'joinedDate'   => date('Y-m-d'),
+                    ];
+                });
 
-        return response()->json($staff);
+            return response()->json($staff);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -256,17 +260,21 @@ class AdminController extends Controller
      */
     public function getUsers()
     {
-        $users = DB::table('Users')
-            ->select('UserID as id', 'Name as name', 'Email as email', 'Role as role',
-                'PhoneNo as phone', 'CreatedAt as createdAt')
-            ->orderBy('CreatedAt', 'desc')
-            ->get()
-            ->map(function($u) {
-                $orderCount = DB::table('Orders')->where('CustomerID', $u->id)->count();
-                return array_merge((array)$u, ['orderCount' => $orderCount]);
-            });
+        try {
+            $users = DB::table('Users')
+                ->select('UserID as id', 'Name as name', 'Email as email', 'Role as role',
+                    'PhoneNo as phone', 'CreatedAt as createdAt')
+                ->orderBy('CreatedAt', 'desc')
+                ->get()
+                ->map(function($u) {
+                    $orderCount = DB::table('Orders')->where('CustomerID', $u->id)->count();
+                    return array_merge((array)$u, ['orderCount' => $orderCount]);
+                });
 
-        return response()->json($users);
+            return response()->json($users);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     /**
