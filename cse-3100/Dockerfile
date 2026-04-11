@@ -21,21 +21,6 @@ RUN npm run build
 # ───────────────────────────────────────────────────────────
 FROM php:8.2-apache
 
-# ENV Arguments for Laravel
-ARG APP_NAME
-ARG APP_ENV
-ARG APP_KEY
-ARG APP_DEBUG
-ARG APP_URL
-ARG FRONTEND_URL
-ARG LOG_LEVEL
-ARG DB_CONNECTION
-ARG DB_HOST
-ARG DB_PORT
-ARG DB_DATABASE
-ARG DB_USERNAME
-ARG DB_PASSWORD
-
 # Install system dependencies needed for Laravel
 RUN apt-get update && apt-get install -y \
     git \
@@ -73,21 +58,9 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev
 # Copy React build from Stage 1 to Laravel public directory
 COPY --from=client-builder /app/dist /var/www/html/public/
 
-# Set environment variables for server
-RUN touch .env && \
-    echo "APP_NAME=${APP_NAME}" >> .env && \
-    echo "SESSION_LIFETIME=1440" >> .env && \
-    echo "APP_ENV=${APP_ENV}" >> .env && \
-    echo "APP_KEY=${APP_KEY}" >> .env && \
-    echo "APP_DEBUG=${APP_DEBUG}" >> .env && \
-    echo "FRONTEND_URL=${FRONTEND_URL}" >> .env && \
-    echo "LOG_LEVEL=${LOG_LEVEL}" >> .env && \
-    echo "DB_CONNECTION=${DB_CONNECTION}" >> .env && \
-    echo "DB_HOST=${DB_HOST}" >> .env && \
-    echo "DB_DATABASE=${DB_DATABASE}" >> .env && \
-    echo "DB_USERNAME=${DB_USERNAME}" >> .env && \
-    echo "DB_PASSWORD=${DB_PASSWORD}" >> .env && \
-    echo "DB_PORT=${DB_PORT}" >> .env
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Set permissions for Laravel
 RUN chown -R www-data:www-data /var/www/html && \
@@ -98,5 +71,5 @@ RUN chown -R www-data:www-data /var/www/html && \
 # Expose port 80 for Apache
 EXPOSE 80
 
-# Start Apache server (force remove conflicting MPMs at runtime just in case)
-CMD sh -c "a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork || true && apache2-foreground"
+# Generate .env at runtime and start Apache
+CMD ["/usr/local/bin/entrypoint.sh"]
