@@ -98,6 +98,5 @@ RUN chown -R www-data:www-data /var/www/html && \
 # Expose port 80 for Apache
 EXPOSE 80
 
-# Start Apache server (force remove conflicting MPMs before starting)
-RUN a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork || true
-CMD ["apache2-foreground"]
+# Start Apache server (force remove conflicting MPMs at runtime just in case)
+CMD sh -c "rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_worker.load && apache2-foreground"
