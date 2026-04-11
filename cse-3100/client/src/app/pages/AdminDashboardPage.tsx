@@ -79,6 +79,14 @@ export const AdminDashboardPage: React.FC = () => {
               className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex items-center gap-2">
               <Users className="w-4 h-4" /> Salary
             </button>
+            <button onClick={() => navigate('/admin/orders')}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4" /> Orders
+            </button>
+            <button onClick={() => navigate('/admin/users')}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex items-center gap-2">
+              <Users className="w-4 h-4" /> Users
+            </button>
             <button onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-lg">
               <LogOut className="w-5 h-5" /><span>Logout</span>

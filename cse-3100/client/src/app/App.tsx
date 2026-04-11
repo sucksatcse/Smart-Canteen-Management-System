@@ -20,6 +20,8 @@ import { AdminDashboardPage } from '@/app/pages/AdminDashboardPage';
 import { MenuManagementPage } from '@/app/pages/MenuManagementPage';
 import { InventoryManagementPage } from '@/app/pages/InventoryManagementPage';
 import { AdminSalaryPage } from '@/app/pages/AdminSalaryPage';
+import { AdminOrdersPage } from '@/app/pages/AdminOrdersPage';
+import { AdminUsersPage } from '@/app/pages/AdminUsersPage';
 // Protected Route Component
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -154,7 +156,22 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/admin/orders"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminOrdersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminUsersPage />
+          </ProtectedRoute>
+        }
+      />
       {/* Catch all - redirect to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
