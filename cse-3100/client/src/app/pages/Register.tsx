@@ -15,7 +15,7 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'customer' | 'staff'>('customer');
+  const [role, setRole] = useState<'customer' | 'staff' | 'admin'>('customer');
   const [contactNo, setContactNo] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -142,12 +142,13 @@ export const RegisterPage: React.FC = () => {
               </label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as 'customer' | 'staff')}
+                onChange={(e) => setRole(e.target.value as 'customer' | 'staff' | 'admin')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 required
               >
                 <option value="customer">Customer</option>
                 <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
 

@@ -42,7 +42,7 @@ class MenuItem extends Model
     ];
 
     // These normalized properties will be attached
-    protected $appends = ['id', 'name', 'category', 'price', 'image_url', 'available', 'description'];
+    protected $appends = ['id', 'name', 'category', 'price', 'image_url', 'available', 'description', 'stockQuantity', 'inStock', 'image'];
 
     // Provide lowercase fields for the frontend
     public function getIdAttribute() { return $this->attributes['ItemID'] ?? null; }
@@ -59,6 +59,9 @@ class MenuItem extends Model
     public function getAvailableAttribute() { return $this->attributes['IsAvailable'] ?? null; }
     public function getImageUrlAttribute() { return $this->attributes['ImageURL'] ?? null; }
     public function getDescriptionAttribute() { return null; } // No description in custom schema
+    public function getStockQuantityAttribute() { return (int)($this->attributes['StockQuantity'] ?? 0); }
+    public function getInStockAttribute() { return (bool)($this->attributes['IsAvailable'] ?? false); }
+    public function getImageAttribute() { return $this->attributes['ImageURL'] ?? null; }
 
     /**
      * A menu item can appear in many order items.

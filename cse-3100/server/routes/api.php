@@ -10,6 +10,7 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,6 +47,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/menu',          [MenuController::class, 'store']);
         Route::put('/menu/{id}',      [MenuController::class, 'update']);
         Route::delete('/menu/{id}',   [MenuController::class, 'destroy']);
+        Route::put('/menu/{id}/stock', [MenuController::class, 'updateStock']);
     });
     
     // Orders & Payments
@@ -59,4 +61,26 @@ Route::middleware(['auth:api'])->group(function () {
     // Profile
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar']);
+});
+
+// ── Admin Routes (JWT + Admin Role) ─────────────────────────────────────
+Route::middleware(['auth:api', 'role:admin'])->group(function () {
+    // Dashboard & Analytics
+    Route::get('/admin/dashboard',      [AdminController::class, 'dashboard']);
+
+    // Staff / Salary
+    Route::get('/admin/staff',          [AdminController::class, 'getStaff']);
+    Route::put('/admin/staff/{id}',     [AdminController::class, 'updateStaffSalary']);
+    Route::delete('/admin/staff/{userId}', [AdminController::class, 'deleteStaff']);
+
+    // Users
+    Route::get('/admin/users',          [AdminController::class, 'getUsers']);
+
+    // All Orders
+    Route::get('/admin/orders',         [AdminController::class, 'getAllOrders']);
+
+    // Admin Menu CRUD
+    Route::post('/admin/menu',          [MenuController::class, 'store']);
+    Route::put('/admin/menu/{id}',      [MenuController::class, 'update']);
+    Route::delete('/admin/menu/{id}',   [MenuController::class, 'destroy']);
 });

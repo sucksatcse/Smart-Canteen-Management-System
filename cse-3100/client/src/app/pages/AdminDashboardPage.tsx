@@ -1,89 +1,57 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useApp } from '@/app/contexts/AppContext';
-import {
-  LogOut,
-  DollarSign,
-  ShoppingBag,
-  Clock,
-  TrendingUp,
-  Users
+import { 
+  LogOut, DollarSign, ShoppingBag, Clock, AlertTriangle,
+  TrendingUp, Package, Users, RefreshCw
 } from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell
-} from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import axiosInstance from '@/lib/axios';
+
+interface DashboardData {
+  kpi: {
+    todaySales: number;
+    todayOrders: number;
+    activeOrders: number;
+    completedOrders: number;
+    lowStockItems: number;
+  };
+  chartData: { date: string; sales: number; orders: number }[];
+  popularItems: { name: string; orders: number }[];
+  recentOrders: {
+    id: string; customerName: string; totalAmount: number;
+    status: string; createdAt: string; itemsCount: number;
+  }[];
+}
 
 export const AdminDashboardPage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { orders, menuItems, refreshOrders } = useApp();
   const navigate = useNavigate();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  useEffect(() => {
-    refreshOrders();
-  }, [refreshOrders]);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
+  const fetchDashboard = async () => {
+    try {
+      const res = await axiosInstance.get('/api/admin/dashboard');
+      setData(res.data);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Calculate KPIs using API field names
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  useEffect(() => {
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 10000); // Poll every 10s
+    return () => clearInterval(interval);
+  }, []);
 
-  const todayOrders = orders.filter(order => {
-    const orderDate = new Date(order.created_at);
-    orderDate.setHours(0, 0, 0, 0);
-    return orderDate.getTime() === today.getTime();
-  });
+  const handleLogout = async () => { await logout(); navigate('/'); };
 
-  const todaySales = todayOrders.reduce((sum, order) => sum + Number(order.total_price), 0);
-  const totalOrders = orders.length;
-  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'preparing').length;
-
-  // Generate chart data (last 7 days)
-  const chartData = [];
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    date.setHours(0, 0, 0, 0);
-
-    const dayOrders = orders.filter(order => {
-      const orderDate = new Date(order.created_at);
-      orderDate.setHours(0, 0, 0, 0);
-      return orderDate.getTime() === date.getTime();
-    });
-
-    const daySales = dayOrders.reduce((sum, order) => sum + Number(order.total_price), 0);
-
-    chartData.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      sales: daySales,
-    });
-  }
-
-  // Popular items — count how many times each item appears across all orders
-  const itemCountMap: Record<string, number> = {};
-  orders.forEach(order => {
-    order.items.forEach(item => {
-      const name = item.menu_item?.name ?? `#${item.menu_item_id}`;
-      itemCountMap[name] = (itemCountMap[name] || 0) + item.quantity;
-    });
-  });
-  const popularItems = Object.entries(itemCountMap)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6);
-
-  // Low stock items (available attribute from API)
-  const lowStockItems = menuItems.filter((m: any) => {
-    const stock = m.StockQuantity ?? m.stock_quantity ?? null;
-    return stock !== null && stock < 10;
-  });
-
-  const BAR_COLORS = ['#f97316', '#fb923c', '#fdba74', '#fcd34d', '#86efac', '#67e8f9'];
+  const kpi = data?.kpi;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -94,202 +62,166 @@ export const AdminDashboardPage: React.FC = () => {
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
             <p className="text-sm text-gray-600">Welcome back, {user?.name}</p>
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/admin/menu')}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
-            >
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <RefreshCw className="w-3 h-3" />
+              Updated {lastUpdated.toLocaleTimeString()}
+            </div>
+            <button onClick={() => navigate('/admin/menu')}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium">
               Manage Menu
             </button>
-            <button
-              onClick={() => navigate('/admin/inventory')}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
-            >
-              Inventory
+            <button onClick={() => navigate('/admin/inventory')}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium">
+              <Package className="w-4 h-4 inline mr-1" /> Inventory
             </button>
-            <button
-              onClick={() => navigate('/admin/salary')}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex items-center gap-2"
-            >
-              <Users className="w-4 h-4" />
-              Salary
+            <button onClick={() => navigate('/admin/salary')}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium flex items-center gap-2">
+              <Users className="w-4 h-4" /> Salary
             </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-lg"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+            <button onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-lg">
+              <LogOut className="w-5 h-5" /><span>Logout</span>
             </button>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Today's Sales</span>
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-green-600" />
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <>
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-600 text-sm">Today's Revenue</span>
+                  <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">৳{(kpi?.todaySales ?? 0).toFixed(2)}</p>
+                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> Live from DB
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-600 text-sm">Today's Orders</span>
+                  <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4 text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{kpi?.todayOrders ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-1">Today only</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-600 text-sm">Active Orders</span>
+                  <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-orange-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{kpi?.activeOrders ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-1">Pending + Preparing</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-600 text-sm">Completed</span>
+                  <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{kpi?.completedOrders ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-1">All time</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-600 text-sm">Low Stock</span>
+                  <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                  </div>
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{kpi?.lowStockItems ?? 0}</p>
+                <p className="text-xs text-red-600 mt-1">Need restock</p>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">৳{todaySales.toFixed(2)}</p>
-            <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              {todayOrders.length} orders today
-            </p>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Total Orders</span>
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5 text-blue-600" />
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold mb-4">Revenue Trend (Last 7 Days)</h2>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={data?.chartData ?? []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => `৳${v.toFixed(2)}`} />
+                    <Line type="monotone" dataKey="sales" stroke="#f97316" strokeWidth={2}
+                      dot={{ fill: '#f97316', r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold mb-4">Most Popular Items</h2>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={data?.popularItems ?? []} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                    <Tooltip cursor={{ fill: 'transparent' }} />
+                    <Bar dataKey="orders" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
-            <p className="text-3xl font-bold text-gray-900">{totalOrders}</p>
-            <p className="text-sm text-gray-600 mt-2">All time orders</p>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Active Orders</span>
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                <Clock className="w-5 h-5 text-orange-600" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{activeOrders}</p>
-            <p className="text-sm text-gray-600 mt-2">Currently processing</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Menu Items</span>
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5 text-purple-600" />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-gray-900">{menuItems.length}</p>
-            <p className="text-sm text-gray-600 mt-2">Available items</p>
-          </div>
-        </div>
-
-        {/* Sales Chart */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Sales Trend (Last 7 Days)</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="sales"
-                stroke="#f97316"
-                strokeWidth={2}
-                dot={{ fill: '#f97316', r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Popular Items + Low Stock — side by side */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Popular Items Bar Chart */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">🔥 Most Popular Items</h2>
-            {popularItems.length === 0 ? (
-              <p className="text-gray-400 text-sm py-8 text-center">No order data yet.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={popularItems} layout="vertical" margin={{ left: 10, right: 20 }}>
-                  <XAxis type="number" tick={{ fontSize: 12 }} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
-                  <Tooltip formatter={(v: number) => [`${v} sold`, 'Qty']} />
-                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                    {popularItems.map((_, i) => (
-                      <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+            {/* Recent Orders */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">Recent Orders</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {['Order ID','Customer','Items','Total','Status','Time'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-sm font-medium text-gray-600">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {(data?.recentOrders ?? []).map(order => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium">{order.id}</td>
+                        <td className="px-4 py-3 text-sm">{order.customerName}</td>
+                        <td className="px-4 py-3 text-sm">{order.itemsCount} items</td>
+                        <td className="px-4 py-3 text-sm font-medium">৳{order.totalAmount.toFixed(2)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            order.status === 'pending'   ? 'bg-yellow-100 text-yellow-800' :
+                            order.status === 'preparing' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'ready'     ? 'bg-purple-100 text-purple-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>{order.status}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {new Date(order.createdAt).toLocaleTimeString()}
+                        </td>
+                      </tr>
                     ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Low Stock Alerts */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">⚠️ Low Stock Alerts</h2>
-            {lowStockItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-green-600">
-                <span className="text-4xl mb-2">✅</span>
-                <p className="font-medium">All items are well-stocked!</p>
+                  </tbody>
+                </table>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {lowStockItems.map((item: any) => {
-                  const stock = item.StockQuantity ?? item.stock_quantity ?? 0;
-                  return (
-                    <div key={item.id ?? item.ItemID} className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{item.name}</p>
-                        <p className="text-xs text-gray-500 capitalize">{item.category}</p>
-                      </div>
-                      <span className={`text-sm font-bold px-2 py-1 rounded-full ${stock === 0 ? 'bg-red-500 text-white' : 'bg-orange-100 text-orange-700'}`}>
-                        {stock === 0 ? 'OUT' : `${stock} left`}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Orders */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">Recent Orders</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Order ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Items</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Total</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-gray-600">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {orders.slice(0, 10).map(order => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium">#{order.id}</td>
-                    <td className="px-4 py-3 text-sm">{order.items.length} items</td>
-                    <td className="px-4 py-3 text-sm font-medium">৳{Number(order.total_price).toFixed(2)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'pending'   ? 'bg-yellow-100 text-yellow-800' :
-                        order.status === 'preparing' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'ready'     ? 'bg-indigo-100 text-indigo-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {new Date(order.created_at).toLocaleTimeString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {orders.length === 0 && (
-              <p className="text-center text-gray-500 py-8">No orders yet</p>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

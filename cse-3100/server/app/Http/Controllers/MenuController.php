@@ -104,4 +104,24 @@ class MenuController extends Controller
 
         return response()->json(['message' => 'Menu item removed successfully.']);
     }
+
+    /**
+     * PUT /api/menu/{id}/stock  [admin]
+     * Update stock quantity for a menu item.
+     */
+    public function updateStock(Request $request, int $id)
+    {
+        $item = MenuItem::findOrFail($id);
+
+        $validated = $request->validate([
+            'stockQuantity' => 'required|integer|min:0',
+        ]);
+
+        $item->update([
+            'StockQuantity' => $validated['stockQuantity'],
+            'IsAvailable'   => $validated['stockQuantity'] > 0,
+        ]);
+
+        return response()->json(['message' => 'Stock updated successfully.']);
+    }
 }
