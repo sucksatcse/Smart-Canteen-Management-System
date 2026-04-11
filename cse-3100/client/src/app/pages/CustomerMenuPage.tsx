@@ -134,27 +134,63 @@ export const CustomerMenuPage: React.FC = () => {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredItems.map(item => (
+                  {filteredItems.map(item => {
+                    const cartItem = cart.find(c => c.id === item.id);
+                    const qtyInCart = cartItem ? cartItem.quantity : 0;
+                    const stockLeft = Math.max(0, item.stock_quantity - qtyInCart);
+                    const isAtLimit = qtyInCart >= item.stock_quantity;
+                    const isOutOfStock = !item.in_stock || item.stock_quantity <= 0;
+
+                    return (
                     <div
                       key={item.id}
-                      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow relative"
                     >
-                      <div className="aspect-video bg-orange-50 overflow-hidden flex items-center justify-center">
+                      {qtyInCart > 0 && (
+                        <div className="absolute top-3 right-3 z-10 bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">
+                          {qtyInCart} in cart
+                        </div>
+                      )}
+                      <div className="aspect-video bg-orange-50 overflow-hidden flex items-center justify-center relative">
                         {item.image_url ? (
                           <img
                             src={item.image_url}
                             alt={item.name}
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
                             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (
-                          <span className="text-5xl">🍽️</span>
+                          <span className={`text-5xl ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}>🍽️</span>
+                        )}
+                        {isOutOfStock && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                            <span className="bg-red-500 text-white font-bold py-1 px-3 rounded-full shadow-lg border border-red-600 tracking-wider">
+                              SOLD OUT
+                            </span>
+                          </div>
                         )}
                       </div>
                       <div className="p-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
-                          {item.category}
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium uppercase tracking-wide text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                            {item.category}
+                          </span>
+                          {!isOutOfStock && stockLeft > 0 && stockLeft <= 3 && (
+                            <span className="text-xs font-bold text-red-500 animate-pulse">
+                              Only {stockLeft} left!
+                            </span>
+                          )}
+                          {!isOutOfStock && stockLeft > 3 && stockLeft <= 10 && (
+                            <span className="text-xs font-medium text-orange-400">
+                              {stockLeft} remaining
+                            </span>
+                          )}
+                          {!isOutOfStock && stockLeft > 10 && (
+                            <span className="text-xs font-medium text-gray-400">
+                              {stockLeft} in stock
+                            </span>
+                          )}
+                        </div>
                         <h3 className="font-semibold text-lg text-gray-900 mt-2">{item.name}</h3>
                         <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                           {item.description}
@@ -165,20 +201,30 @@ export const CustomerMenuPage: React.FC = () => {
                           </span>
                           <button
                             onClick={() => addToCart(item)}
-                            disabled={!item.available}
-                            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors ${
-                              item.available
-                                ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            disabled={isOutOfStock || isAtLimit}
+                            className={`px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors min-w-[100px] ${
+                              isOutOfStock 
+                                ? 'bg-red-100 text-red-500 cursor-not-allowed'
+                                : isAtLimit
+                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white'
                             }`}
                           >
-                            <Plus className="w-4 h-4" />
-                            {item.available ? 'Add' : 'Out of Stock'}
+                            {isOutOfStock ? (
+                              'Out of Stock'
+                            ) : isAtLimit ? (
+                              'Max Added'
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4" /> Add
+                              </>
+                            )}
                           </button>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {filteredItems.length === 0 && (

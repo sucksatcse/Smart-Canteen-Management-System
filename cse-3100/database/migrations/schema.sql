@@ -176,6 +176,10 @@ CREATE TRIGGER trg_AutoDisableOutOfStock
 BEFORE UPDATE ON Menu
 FOR EACH ROW
 BEGIN
+    IF NEW.StockQuantity < 0 THEN
+        SET NEW.StockQuantity = 0;
+    END IF;
+
     IF NEW.StockQuantity = 0 THEN
         SET NEW.IsAvailable = 0;
     ELSEIF NEW.StockQuantity > 0 THEN
@@ -185,14 +189,37 @@ END//
 
 DROP TRIGGER IF EXISTS trg_DeductStock//
 CREATE TRIGGER trg_DeductStock
-AFTER INSERT ON OrderItems
+BEFORE INSERT ON OrderItems
 FOR EACH ROW
 BEGIN
-    UPDATE Menu
-    SET StockQuantity = StockQuantity - NEW.Quantity
-    WHERE ItemID = NEW.ItemID AND StockQuantity >= NEW.Quantity;
+    DECLARE current_stock INT;
     
-    -- Note: If stock is insufficient, the MySQL check constraint (StockQuantity >= 0) enforces failure and triggers rollback.
+    SELECT StockQuantity INTO current_stock 
+    FROM Menu 
+    WHERE ItemID = NEW.ItemID;
+    
+    IF current_stock < NEW.Quantity THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Insufficient stock for one or more items in the order.';
+    ELSE
+        UPDATE Menu
+        SET StockQuantity = StockQuantity - NEW.Quantity
+        WHERE ItemID = NEW.ItemID;
+    END IF;
+END//
+
+DROP TRIGGER IF EXISTS trg_RestockOnCancel//
+CREATE TRIGGER trg_RestockOnCancel
+AFTER UPDATE ON Orders
+FOR EACH ROW
+BEGIN
+    IF NEW.Status = 'cancelled' AND OLD.Status != 'cancelled' THEN
+        -- When an order is cancelled, return the quantities back to Menu stock.
+        UPDATE Menu m
+        INNER JOIN OrderItems oi ON m.ItemID = oi.ItemID
+        SET m.StockQuantity = m.StockQuantity + oi.Quantity
+        WHERE oi.OrderID = NEW.OrderID;
+    END IF;
 END//
 
 

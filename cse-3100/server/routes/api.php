@@ -53,6 +53,7 @@ Route::middleware(['auth:api'])->group(function () {
     // Orders & Payments
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::put('/orders/{id}/cancel', [OrderController::class, 'cancelOrder']);
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus'])->middleware('role:admin,staff');
     
     Route::post('/payments', [PaymentController::class, 'store']);

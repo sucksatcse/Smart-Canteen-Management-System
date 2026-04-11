@@ -43,54 +43,84 @@ class OrderController extends Controller
             'table_number'         => 'nullable|string|max:10',
         ]);
 
-        $order = DB::transaction(function () use ($validated, $request) {
-            $totalPrice = 0;
-            $orderItemsData = [];
+        try {
+            $order = DB::transaction(function () use ($validated, $request) {
+                $totalPrice = 0;
+                $orderItemsData = [];
 
-            // Calculate price from live DB values (not client-submitted prices)
-            foreach ($validated['items'] as $cartItem) {
-                $menuItem = MenuItem::findOrFail($cartItem['menu_item_id']);
-                $lineTotal = $menuItem->price * $cartItem['quantity'];
-                $totalPrice += $lineTotal;
+                // Calculate price from live DB values (not client-submitted prices)
+                foreach ($validated['items'] as $cartItem) {
+                    $menuItem = MenuItem::findOrFail($cartItem['menu_item_id']);
+                    $lineTotal = $menuItem->price * $cartItem['quantity'];
+                    $totalPrice += $lineTotal;
 
-                $orderItemsData[] = [
-                    'menu_item_id' => $menuItem->id,
-                    'quantity'     => $cartItem['quantity'],
-                    'unit_price'   => $menuItem->price,
-                ];
-            }
+                    $orderItemsData[] = [
+                        'menu_item_id' => $menuItem->id,
+                        'quantity'     => $cartItem['quantity'],
+                        'unit_price'   => $menuItem->price,
+                    ];
+                }
 
-            // Create the order
-            $order = Order::create([
-                'CustomerID'      => $request->user()->id,
-                'CanteenID'       => 1,
-                'Status'          => 'pending',
-                'TotalAmount'     => $totalPrice,
-                'SpecialNotes'    => $validated['notes'] ?? null,
-                'TableNumber'     => $validated['table_number'] ?? null,
-            ]);
-
-            // Create all order items
-            foreach ($orderItemsData as $itemData) {
-                $order->items()->create([
-                    'ItemID'    => $itemData['menu_item_id'],
-                    'Quantity'  => $itemData['quantity'],
-                    'UnitPrice' => $itemData['unit_price'],
+                // Create the order
+                $order = Order::create([
+                    'CustomerID'      => $request->user()->id,
+                    'CanteenID'       => 1,
+                    'Status'          => 'pending',
+                    'TotalAmount'     => $totalPrice,
+                    'SpecialNotes'    => $validated['notes'] ?? null,
+                    'TableNumber'     => $validated['table_number'] ?? null,
                 ]);
+
+                // Create all order items
+                foreach ($orderItemsData as $itemData) {
+                    $order->items()->create([
+                        'ItemID'    => $itemData['menu_item_id'],
+                        'Quantity'  => $itemData['quantity'],
+                        'UnitPrice' => $itemData['unit_price'],
+                    ]);
+                }
+
+                // Create synchronous payment record
+                $order->payment()->create([
+                    'Amount'        => $totalPrice,
+                    'PaymentMethod' => 'cash', // Defaulted to cash for now
+                    'Status'        => 'completed',
+                    'PaymentTime'   => now(),
+                ]);
+
+                return $order->load('items.menuItem');
+            });
+
+            return response()->json($order, 201);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == '45000') {
+                return response()->json(['message' => 'Insufficient stock for one or more items.'], 400);
             }
+            throw $e;
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to place order.'], 500);
+        }
+    }
 
-            // Create synchronous payment record
-            $order->payment()->create([
-                'Amount'        => $totalPrice,
-                'PaymentMethod' => 'cash', // Defaulted to cash for now
-                'Status'        => 'completed',
-                'PaymentTime'   => now(),
-            ]);
+    /**
+     * PUT /api/orders/{id}/cancel  [auth]
+     * Cancel an order (customer can cancel their own, up to 'preparing').
+     */
+    public function cancelOrder(Request $request, int $id)
+    {
+        $order = Order::findOrFail($id);
 
-            return $order->load('items.menuItem');
-        });
+        if ($request->user()->role === 'customer' && $order->CustomerID !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
 
-        return response()->json($order, 201);
+        if (!in_array($order->Status, ['pending', 'preparing'])) {
+            return response()->json(['message' => 'Order cannot be cancelled at this stage.'], 400);
+        }
+
+        $order->update(['Status' => 'cancelled']);
+
+        return response()->json($order->load('items.menuItem'));
     }
 
     /**

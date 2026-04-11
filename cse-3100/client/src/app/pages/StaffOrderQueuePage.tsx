@@ -6,14 +6,19 @@ import { LogOut, Clock, ChefHat, CheckCircle, RefreshCw, CheckSquare } from 'luc
 
 export const StaffOrderQueuePage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { orders, updateOrderStatus, refreshOrders } = useApp();
+  const { orders, updateOrderStatus, refreshOrders, silentRefreshOrders } = useApp();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<'live' | 'completed'>('live');
 
+  // Initial load shows spinner; background polls are completely silent (no flicker)
   useEffect(() => {
     refreshOrders();
-  }, [refreshOrders]);
+    const interval = setInterval(() => {
+      silentRefreshOrders();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [refreshOrders, silentRefreshOrders]);
 
   const liveOrders = orders.filter(
     (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'ready'

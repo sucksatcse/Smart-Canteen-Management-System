@@ -100,7 +100,12 @@ export const CartPage: React.FC = () => {
                           <span className="font-medium w-8 text-center">{item.quantity}</span>
                           <button
                             onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                            className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full"
+                            disabled={item.quantity >= item.stock_quantity}
+                            className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                              item.quantity >= item.stock_quantity
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
                           >
                             <Plus className="w-4 h-4" />
                           </button>

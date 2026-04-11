@@ -6,13 +6,17 @@ import { ArrowLeft, Clock, CheckCircle, AlertCircle, Loader2, RefreshCw, Shoppin
 
 export const OrderStatusPage: React.FC = () => {
   const { user } = useAuth();
-  const { orders, isOrdersLoading, refreshOrders } = useApp();
+  const { orders, isOrdersLoading, refreshOrders, silentRefreshOrders, cancelOrder } = useApp();
   const navigate = useNavigate();
 
-  // Fetch orders from the API when the page loads
+  // Initial load shows spinner; background polls are completely silent (no flicker)
   useEffect(() => {
     refreshOrders();
-  }, [refreshOrders]);
+    const interval = setInterval(() => {
+      silentRefreshOrders();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [refreshOrders, silentRefreshOrders]);
 
   const getStatusStep = (status: string): number => {
     if (status === 'pending') return 0;
@@ -186,8 +190,18 @@ export const OrderStatusPage: React.FC = () => {
                   <span className="text-sm text-gray-500">
                     {order.items.reduce((s, i) => s + i.quantity, 0)} item(s)
                   </span>
-                  <div className="text-xl font-bold text-orange-500">
-                    Total: ৳{Number(order.total_price).toFixed(2)}
+                  <div className="flex items-center gap-4">
+                    {order.status === 'pending' && (
+                      <button 
+                        onClick={() => cancelOrder(order.id)}
+                        className="text-red-500 hover:text-red-600 text-sm font-medium px-3 py-1 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                      >
+                        Cancel Order
+                      </button>
+                    )}
+                    <div className="text-xl font-bold text-orange-500">
+                      Total: ৳{Number(order.total_price).toFixed(2)}
+                    </div>
                   </div>
                 </div>
               </div>

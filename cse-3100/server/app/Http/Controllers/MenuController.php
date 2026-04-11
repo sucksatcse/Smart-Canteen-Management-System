@@ -13,24 +13,17 @@ class MenuController extends Controller
      */
     public function index()
     {
-        $items = MenuItem::where('IsAvailable', true)
-            ->orderBy('Category')
-            ->orderBy('Name')
-            ->get()
+        $items = MenuItem::orderBy('Category')->orderBy('Name')->get()
             ->map(function ($item) {
-                // Manually mapping categories
-                $cat = $item->Category;
-                if ($cat === 'meals') $cat = 'main';
-                if ($cat === 'snacks') $cat = 'snack';
-
                 return [
-                    'id'          => $item->ItemID,
-                    'name'        => $item->Name,
-                    'category'    => $cat,
-                    'price'       => (float) $item->Price,
-                    'image_url'   => $item->ImageURL,
-                    'available'   => (bool) $item->IsAvailable,
-                    'description' => null,
+                    'id'             => $item->ItemID,
+                    'name'           => $item->Name,
+                    'category'       => strtolower($item->Category),
+                    'price'          => (float) $item->Price,
+                    'image_url'      => $item->ImageURL,
+                    'stock_quantity' => (int) $item->StockQuantity,
+                    'in_stock'       => (bool) $item->IsAvailable,
+                    'description'    => $item->Description ?? null,
                 ];
             });
 
@@ -44,24 +37,33 @@ class MenuController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price'       => 'required|numeric|min:0',
-            'category'    => 'required|in:main,snack,drinks,dessert',
-            'image_url'   => 'nullable|string|max:500',
-            'available'   => 'boolean',
+            'name'          => 'required|string|max:255',
+            'description'   => 'nullable|string',
+            'price'         => 'required|numeric|min:0',
+            'category'      => 'required|string|max:50',
+            'image_url'     => 'nullable|string|max:1000',
+            'stockQuantity' => 'nullable|integer|min:0',
         ]);
 
         $item = MenuItem::create([
-            'CanteenID'     => 1, // Defaulting to 1 as per current logic
+            'CanteenID'     => 1,
             'Name'          => $validated['name'],
             'Category'      => $validated['category'],
             'Price'         => $validated['price'],
             'ImageURL'      => $validated['image_url'] ?? null,
-            'IsAvailable'   => $validated['available'] ?? true,
+            'StockQuantity' => $validated['stockQuantity'] ?? 50,
+            'IsAvailable'   => ($validated['stockQuantity'] ?? 50) > 0,
         ]);
 
-        return response()->json($item, 201);
+        return response()->json([
+            'id'             => $item->ItemID,
+            'name'           => $item->Name,
+            'category'       => strtolower($item->Category),
+            'price'          => (float) $item->Price,
+            'image_url'      => $item->ImageURL,
+            'stock_quantity' => (int) $item->StockQuantity,
+            'in_stock'       => (bool) $item->IsAvailable,
+        ], 201);
     }
 
     /**
@@ -73,24 +75,35 @@ class MenuController extends Controller
         $item = MenuItem::findOrFail($id);
 
         $validated = $request->validate([
-            'name'        => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'price'       => 'sometimes|numeric|min:0',
-            'category'    => 'sometimes|in:main,snack,drinks,dessert',
-            'image_url'   => 'nullable|string|max:500',
-            'available'   => 'boolean',
+            'name'          => 'sometimes|string|max:255',
+            'description'   => 'nullable|string',
+            'price'         => 'sometimes|numeric|min:0',
+            'category'      => 'sometimes|string|max:50',
+            'image_url'     => 'nullable|string|max:1000',
+            'stockQuantity' => 'nullable|integer|min:0',
         ]);
 
         $updateData = [];
-        if (isset($validated['name'])) $updateData['Name'] = $validated['name'];
-        if (isset($validated['category'])) $updateData['Category'] = $validated['category'];
-        if (isset($validated['price'])) $updateData['Price'] = $validated['price'];
+        if (isset($validated['name']))          $updateData['Name']          = $validated['name'];
+        if (isset($validated['category']))      $updateData['Category']      = $validated['category'];
+        if (isset($validated['price']))         $updateData['Price']         = $validated['price'];
         if (array_key_exists('image_url', $validated)) $updateData['ImageURL'] = $validated['image_url'];
-        if (isset($validated['available'])) $updateData['IsAvailable'] = $validated['available'];
+        if (isset($validated['stockQuantity'])) {
+            $updateData['StockQuantity'] = $validated['stockQuantity'];
+            $updateData['IsAvailable']   = $validated['stockQuantity'] > 0;
+        }
 
         $item->update($updateData);
 
-        return response()->json($item);
+        return response()->json([
+            'id'             => $item->ItemID,
+            'name'           => $item->Name,
+            'category'       => strtolower($item->Category),
+            'price'          => (float) $item->Price,
+            'image_url'      => $item->ImageURL,
+            'stock_quantity' => (int) $item->StockQuantity,
+            'in_stock'       => (bool) $item->IsAvailable,
+        ]);
     }
 
     /**

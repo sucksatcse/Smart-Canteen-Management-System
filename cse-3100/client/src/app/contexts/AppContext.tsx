@@ -11,7 +11,8 @@ export interface MenuItem {
   price: number;
   category: 'main' | 'snack' | 'drinks' | 'dessert';
   image_url: string | null;
-  available: boolean;
+  in_stock: boolean;
+  stock_quantity: number;
 }
 
 export interface CartItem extends MenuItem {
@@ -52,8 +53,10 @@ interface AppContextType {
   orders: Order[];
   isOrdersLoading: boolean;
   createOrder: (notes?: string, tableNumber?: string) => Promise<Order | null>;
-  updateOrderStatus: (orderId: number, status: Order['status']) => Promise<void>;
+  updateOrderStatus: (orderId: number, status: Order['status']) => Promise<boolean>;
+  cancelOrder: (orderId: number) => Promise<boolean>;
   refreshOrders: () => Promise<void>;
+  silentRefreshOrders: () => Promise<void>;
 
   // Menu (API-backed)
   menuItems: MenuItem[];
@@ -124,6 +127,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
+  // Silent version — updates orders in background with NO loading spinner
+  const silentRefreshOrders = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get('/api/orders');
+      setOrders(res.data);
+    } catch (err) {
+      // fail silently — don't disturb the UI
+    }
+  }, []);
+
   // Hydrate data when user logs in, clear when user logs out
   useEffect(() => {
     if (user) {
@@ -144,6 +157,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const addToCart = (item: MenuItem) => {
     setCart(prev => {
       const existing = prev.find(c => c.id === item.id);
+      const currentQty = existing ? existing.quantity : 0;
+      
+      // Prevent adding if we reached stock limit
+      if (currentQty >= item.stock_quantity) {
+        return prev;
+      }
+      
       if (existing) {
         return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
       }
@@ -160,7 +180,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       removeFromCart(itemId);
       return;
     }
-    setCart(prev => prev.map(c => c.id === itemId ? { ...c, quantity } : c));
+    
+    setCart(prev => {
+      const existing = prev.find(c => c.id === itemId);
+      if (!existing) return prev;
+      
+      // Cap at actual stock quantity
+      const cappedQty = Math.min(quantity, existing.stock_quantity);
+      if (cappedQty <= 0) {
+        return prev.filter(c => c.id !== itemId);
+      }
+      
+      return prev.map(c => c.id === itemId ? { ...c, quantity: cappedQty } : c);
+    });
   };
 
   const clearCart = () => setCart([]);
@@ -190,8 +222,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const res = await axiosInstance.put(`/api/orders/${orderId}/status`, { status });
       setOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
-    } catch (err) {
-      console.error('Failed to update order status:', err);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const cancelOrder = async (orderId: number) => {
+    try {
+      const res = await axiosInstance.put(`/api/orders/${orderId}/cancel`);
+      setOrders(prev => prev.map(o => o.id === orderId ? res.data : o));
+      // Refresh menu so that stock quantity reflects immediately if restocked
+      refreshMenu();
+      return true;
+    } catch {
+      return false;
     }
   };
 
@@ -225,7 +270,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isOrdersLoading,
         createOrder,
         updateOrderStatus,
+        cancelOrder,
         refreshOrders,
+        silentRefreshOrders,
         menuItems,
         isMenuLoading,
         refreshMenu,

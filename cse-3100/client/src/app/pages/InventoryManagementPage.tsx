@@ -4,54 +4,56 @@ import { ArrowLeft, AlertTriangle, Package, TrendingUp, RefreshCw } from 'lucide
 import axiosInstance from '@/lib/axios';
 
 interface MenuItem {
-  id: string;
+  id: number;
   name: string;
   category: string;
-  stockQuantity: number;
-  inStock: boolean;
-  image: string;
+  stock_quantity: number;
+  in_stock: boolean;
+  image_url: string | null;
 }
 
 export const InventoryManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [newStock, setNewStock] = useState(0);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchItems = useCallback(async () => {
+  const fetchItems = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await axiosInstance.get('/api/menu');
-      setItems(res.data.items ?? res.data ?? []);
+      setItems(res.data ?? []);
+      if (silent) setError(null); // Clear errors silently if recovered
     } catch {
-      setError('Failed to load inventory');
+      if (!silent) setError('Failed to load inventory');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchItems();
-    const interval = setInterval(fetchItems, 10000); // Poll every 10s
+    fetchItems(false);
+    const interval = setInterval(() => fetchItems(true), 3000); // Poll every 3s silently
     return () => clearInterval(interval);
   }, [fetchItems]);
 
-  const handleUpdateStock = async (itemId: string) => {
+  const handleUpdateStock = async (itemId: number) => {
     if (newStock < 0) return;
-    setSavingId(itemId);
+    setSavingId(String(itemId));
     try {
       await axiosInstance.put(`/api/menu/${itemId}/stock`, { stockQuantity: newStock });
-      setItems(prev => prev.map(i => i.id === itemId ? { ...i, stockQuantity: newStock, inStock: newStock > 0 } : i));
+      setItems(prev => prev.map(i => i.id === itemId ? { ...i, stock_quantity: newStock, in_stock: newStock > 0 } : i));
       setUpdatingId(null);
       setNewStock(0);
     } catch { setError('Failed to update stock'); }
     finally { setSavingId(null); }
   };
 
-  const lowStockItems = items.filter(i => i.stockQuantity < 10);
-  const outOfStockItems = items.filter(i => !i.inStock);
+  const lowStockItems = items.filter(i => i.stock_quantity > 0 && i.stock_quantity < 10);
+  const outOfStockItems = items.filter(i => !i.in_stock);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,7 +65,7 @@ export const InventoryManagementPage: React.FC = () => {
             </button>
             <h1 className="text-2xl font-bold">Inventory Management</h1>
           </div>
-          <button onClick={fetchItems} className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">
+          <button onClick={() => fetchItems(false)} className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
         </div>
@@ -141,7 +143,11 @@ export const InventoryManagementPage: React.FC = () => {
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-lg" />
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.name} className="w-12 h-12 object-cover rounded-lg" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xl">🍽️</div>
+                          )}
                           <span className="font-medium">{item.name}</span>
                         </div>
                       </td>
@@ -150,17 +156,17 @@ export const InventoryManagementPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-lg font-bold ${
-                          item.stockQuantity === 0 ? 'text-red-600' :
-                          item.stockQuantity < 10  ? 'text-orange-600' : 'text-green-600'
-                        }`}>{item.stockQuantity}</span>
+                          item.stock_quantity === 0 ? 'text-red-600' :
+                          item.stock_quantity < 10  ? 'text-orange-600' : 'text-green-600'
+                        }`}>{item.stock_quantity}</span>
                       </td>
                       <td className="px-6 py-4">
-                        {item.stockQuantity === 0 ? (
+                        {item.stock_quantity === 0 ? (
                           <div className="flex items-center gap-2 text-red-600">
                             <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
                             <span className="text-sm font-medium">Out of Stock</span>
                           </div>
-                        ) : item.stockQuantity < 10 ? (
+                        ) : item.stock_quantity < 10 ? (
                           <div className="flex items-center gap-2 text-orange-600">
                             <AlertTriangle className="w-4 h-4" />
                             <span className="text-sm font-medium">Low Stock</span>
@@ -178,16 +184,16 @@ export const InventoryManagementPage: React.FC = () => {
                             <input type="number" value={newStock} min="0"
                               onChange={e => setNewStock(parseInt(e.target.value) || 0)}
                               className="w-20 px-3 py-1 border border-gray-300 rounded text-sm" placeholder="Qty" />
-                            <button onClick={() => handleUpdateStock(item.id)} disabled={savingId === item.id}
+                            <button onClick={() => handleUpdateStock(item.id)} disabled={savingId === String(item.id)}
                               className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm flex items-center gap-1">
-                              {savingId === item.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : null} Update
+                              {savingId === String(item.id) ? <RefreshCw className="w-3 h-3 animate-spin" /> : null} Update
                             </button>
                             <button onClick={() => { setUpdatingId(null); setNewStock(0); }}
                               className="px-3 py-1 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded text-sm">Cancel</button>
                           </div>
                         ) : (
                           <div className="flex justify-end">
-                            <button onClick={() => { setUpdatingId(item.id); setNewStock(item.stockQuantity); }}
+                            <button onClick={() => { setUpdatingId(item.id); setNewStock(item.stock_quantity); }}  
                               className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium">
                               Update Stock
                             </button>
