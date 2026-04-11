@@ -99,4 +99,4 @@ RUN chown -R www-data:www-data /var/www/html && \
 EXPOSE 80
 
 # Start Apache server (force remove conflicting MPMs at runtime just in case)
-CMD sh -c "rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_worker.load && apache2-foreground"
+CMD sh -c "a2dismod mpm_event mpm_worker || true && a2enmod mpm_prefork || true && apache2-foreground"
